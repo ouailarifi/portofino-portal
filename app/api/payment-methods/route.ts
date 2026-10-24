@@ -58,6 +58,7 @@ export async function POST() {
   const setupIntent = await stripe.setupIntents.create({
     customer: customerId,
     allowed_payment_method_types: ["card"],
+    usage: "off_session", // permite cobrar más adelante (p. ej. penalización por baja) sin que el cliente esté presente
   });
 
   return NextResponse.json({ clientSecret: setupIntent.client_secret });

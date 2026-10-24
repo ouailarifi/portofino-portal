@@ -8,17 +8,22 @@ type Info = {
   subscriptionStatus: string;
   commitmentEnd: string | null;
   insideCommitment: boolean;
+  penaltyAmount: number;
+  penaltyRatePct: number;
+  remainingMonths: number;
+  monthlyFee: number | null;
 };
 
 const fecha = (iso: string) =>
   new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
+const money = (n: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
 
 export default function CancelProperty({ propertyId, address }: { propertyId: string; address: string }) {
-  const [step, setStep] = useState<"idle" | "loading" | "confirm" | "done" | "error">("idle");
+  const [step, setStep] = useState<"idle" | "loading" | "confirm" | "confirming" | "done" | "error">("idle");
   const [info, setInfo] = useState<Info | null>(null);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [effectiveAt, setEffectiveAt] = useState<string | null>(null);
+  const [result, setResult] = useState<{ penaltyAmount: number; effectiveAt: string } | null>(null);
 
   async function openConfirm() {
     setStep("loading");
@@ -34,6 +39,7 @@ export default function CancelProperty({ propertyId, address }: { propertyId: st
   }
 
   async function confirmCancel() {
+    setStep("confirming");
     const res = await fetch(`/api/properties/${propertyId}/cancel`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -45,15 +51,17 @@ export default function CancelProperty({ propertyId, address }: { propertyId: st
       setStep("error");
       return;
     }
-    setEffectiveAt(data.effectiveAt);
+    setResult(data);
     setStep("done");
   }
 
-  if (step === "done") {
+  if (step === "done" && result) {
     return (
       <p style={{ fontSize: 14, color: "var(--gold)" }}>
-        Baja solicitada para {address}. Será efectiva el {effectiveAt && fecha(effectiveAt)}. Le hemos enviado la
-        confirmación por email, con copia a nuestro equipo.
+        Baja solicitada para {address}.{" "}
+        {result.penaltyAmount > 0 && <>Se ha cobrado la penalización de {money(result.penaltyAmount)}. </>}
+        Será efectiva el {fecha(result.effectiveAt)}. Le hemos enviado la confirmación por email, con copia a
+        nuestro equipo.
       </p>
     );
   }
@@ -86,17 +94,27 @@ export default function CancelProperty({ propertyId, address }: { propertyId: st
         zIndex: 50,
       }}
     >
-      <div className="card" style={{ maxWidth: 520 }}>
+      <div className="card" style={{ maxWidth: 540 }}>
         <h2 style={{ fontSize: 22, marginBottom: 16 }}>Confirmar baja — {address}</h2>
         <div style={{ fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
           {info?.insideCommitment ? (
-            <p>
-              Esta vivienda tiene un <strong>compromiso de permanencia activo hasta el {fecha(info.commitmentEnd!)}</strong>{" "}
-              (facturación anual). La baja quedará registrada ahora, pero será efectiva en esa fecha, salvo que
-              apliquen las condiciones de cancelación anticipada de su contrato.
-            </p>
+            <>
+              <p style={{ marginBottom: 10 }}>
+                Esta vivienda tiene un <strong>compromiso de permanencia activo hasta el {fecha(info.commitmentEnd!)}</strong>{" "}
+                (facturación anual).
+              </p>
+              {info.penaltyAmount > 0 ? (
+                <p>
+                  Se aplicará una penalización por baja anticipada del <strong>{info.penaltyRatePct}%</strong> de las{" "}
+                  <strong>{info.remainingMonths}</strong> cuotas pendientes: <strong>{money(info.penaltyAmount)}</strong>.
+                  Se cobrará de inmediato con su método de pago guardado al confirmar.
+                </p>
+              ) : (
+                <p>No se aplicará penalización.</p>
+              )}
+            </>
           ) : (
-            <p>Esta vivienda no tiene compromiso de permanencia pendiente. La baja será efectiva de inmediato.</p>
+            <p>Esta vivienda no tiene compromiso de permanencia pendiente. La baja será efectiva de inmediato y sin penalización.</p>
           )}
         </div>
         <div className="field">
@@ -105,11 +123,12 @@ export default function CancelProperty({ propertyId, address }: { propertyId: st
         </div>
         {error && <p className="error">{error}</p>}
         <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-          <button className="btn" onClick={confirmCancel}>
-            Confirmar baja
+          <button className="btn" onClick={confirmCancel} disabled={step === "confirming"}>
+            {step === "confirming" ? "Procesando…" : "Confirmar baja"}
           </button>
           <button
             onClick={() => setStep("idle")}
+            disabled={step === "confirming"}
             style={{ background: "none", border: "1px solid var(--line)", borderRadius: 8, padding: "13px 22px", cursor: "pointer", fontFamily: "inherit" }}
           >
             Cancelar
