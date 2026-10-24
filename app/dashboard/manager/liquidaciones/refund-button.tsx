@@ -38,7 +38,11 @@ export default function RefundButton({ paymentId, maxAmount }: { paymentId: stri
 
   return (
     <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      <label htmlFor={`refund-amount-${paymentId}`} className="muted" style={{ fontSize: 11 }}>
+        Importe a reembolsar (€):
+      </label>
       <input
+        id={`refund-amount-${paymentId}`}
         type="number"
         min="0.01"
         step="0.01"

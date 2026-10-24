@@ -24,5 +24,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message ?? "No se pudo actualizar la suscripción" }, { status: 400 });
   }
 
+  await supabase.from("properties").update({ payment_paused: !!pause }).eq("id", propertyId);
+
   return NextResponse.json({ ok: true });
 }

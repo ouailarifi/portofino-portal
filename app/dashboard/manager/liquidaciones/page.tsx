@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { stripe } from "@/lib/stripe";
 import ChargeClientForm from "./charge-client-form";
 import RefundButton from "./refund-button";
 import ProfessionalPaymentForm from "./professional-payment-form";
@@ -21,7 +20,10 @@ export default async function LiquidacionesPage() {
 
   const [{ data: clients }, { data: properties }, { data: professionals }, { data: payments }, { data: proPayments }] = await Promise.all([
     supabase.from("profiles").select("id, full_name").eq("role", "cliente").order("full_name", { ascending: true }),
-    supabase.from("properties").select("id, address, client_id, stripe_subscription_id").order("address", { ascending: true }),
+    supabase
+      .from("properties")
+      .select("id, address, client_id, stripe_subscription_id, payment_paused, profiles(full_name)")
+      .order("address", { ascending: true }),
     supabase.from("profiles").select("id, full_name, codigo_profesional").eq("role", "profesional").order("codigo_profesional", { ascending: true }),
     supabase
       .from("payments")
@@ -37,18 +39,6 @@ export default async function LiquidacionesPage() {
 
   const propertiesWithSub = (properties ?? []).filter((p) => p.stripe_subscription_id);
 
-  const pauseStates = await Promise.all(
-    propertiesWithSub.map(async (p) => {
-      try {
-        const sub = await stripe.subscriptions.retrieve(p.stripe_subscription_id as string);
-        return { id: p.id, paused: !!sub.pause_collection };
-      } catch {
-        return { id: p.id, paused: false };
-      }
-    })
-  );
-  const pausedById = new Map(pauseStates.map((s) => [s.id, s.paused]));
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <h1 style={{ fontSize: 30 }}>Liquidaciones</h1>
@@ -56,9 +46,13 @@ export default async function LiquidacionesPage() {
       <div className="card">
         <strong>Cobrar a un cliente</strong>
         <p className="muted" style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>
-          Para el resto de un presupuesto (firma, final) u otro cobro puntual. Usa la tarjeta ya guardada del cliente.
+          Para el resto de un presupuesto (firma, final) u otro cobro puntual. Usa la tarjeta ya guardada del cliente elegido.
         </p>
-        <ChargeClientForm clients={clients ?? []} properties={properties ?? []} />
+        {clients?.length ? (
+          <ChargeClientForm clients={clients} properties={properties ?? []} />
+        ) : (
+          <p className="muted">Todavía no hay ningún cliente dado de alta.</p>
+        )}
       </div>
 
       <div className="card">
@@ -86,10 +80,13 @@ export default async function LiquidacionesPage() {
       <div className="card">
         <strong>Pausar / reanudar cuotas recurrentes</strong>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
-          {propertiesWithSub.map((p) => (
+          {propertiesWithSub.map((p: any) => (
             <div key={p.id} className="visit-row">
-              <span>{p.address}</span>
-              <PauseButton propertyId={p.id} initialPaused={pausedById.get(p.id) ?? false} />
+              <div>
+                <strong>{p.address}</strong>
+                <div className="muted" style={{ fontSize: 13 }}>{p.profiles?.full_name}</div>
+              </div>
+              <PauseButton propertyId={p.id} initialPaused={!!p.payment_paused} />
             </div>
           ))}
           {!propertiesWithSub.length && <p className="muted">Ninguna vivienda tiene cuota recurrente activa.</p>}
