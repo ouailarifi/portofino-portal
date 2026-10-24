@@ -18,6 +18,7 @@ const PROFESIONAL_NAV = [{ href: "/dashboard", label: "Mis visitas" }];
 const MANAGER_NAV = [
   { href: "/dashboard/manager/clientes", label: "Clientes" },
   { href: "/dashboard/manager/profesionales", label: "Profesionales" },
+  { href: "/dashboard/manager/liquidaciones", label: "Liquidaciones" },
   { href: "/dashboard/documentacion", label: "Documentación" },
 ];
 
