@@ -1,18 +1,23 @@
 // Reglas de permanencia y penalización confirmadas para el contrato Portofino
 // (facturación anual = 12 meses de compromiso; sin permanencia en Flexible):
-//   Meses 1-3: 65% de las cuotas pendientes · 4-6: 65% · 7-9: 50% · 10-12: 35%
-//   Empresas: 100% siempre, cualquier mes.
+//   Meses 1-3: periodo de prueba — baja libre, sin penalización (particulares y empresas).
+//     Solo se cobran/mantienen las cuotas de los meses ya transcurridos, nada más.
+//   A partir del mes 4: deducción fija del 30% sobre las cuotas no devengadas
+//     (coincide con el derecho de desistimiento/reembolso proporcional del contrato:
+//     "deducción del 30% ... en concepto de costes de regularización administrativa
+//     y ajuste del compromiso anual").
+//   El periodo de prueba de 3 meses cubre y excede el derecho legal de desistimiento
+//     de 14 días naturales (contratación a distancia/fuera de establecimiento, LGDCU) —
+//     no se necesita una ventana separada de 14 días porque ya está contenida en él.
 export function monthsElapsed(start: Date, now: Date) {
   const days = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
   return Math.floor(days / 30);
 }
 
 export function penaltyRate(monthElapsed: number, clientType: "particular" | "empresa") {
+  if (monthElapsed < 3) return 0; // periodo de prueba: baja libre, sin penalización
   if (clientType === "empresa") return 1;
-  if (monthElapsed >= 12) return 0;
-  if (monthElapsed >= 9) return 0.35;
-  if (monthElapsed >= 6) return 0.5;
-  return 0.65; // meses 0-5 (cubre también los meses 1-3, sin tramo propio definido en el contrato)
+  return 0.3; // a partir del 4º mes: deducción fija del 30%
 }
 
 export function computeCancellation(params: {

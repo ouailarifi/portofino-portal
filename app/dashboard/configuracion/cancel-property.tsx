@@ -105,17 +105,23 @@ export default function CancelProperty({ propertyId, address }: { propertyId: st
               </p>
               {info.penaltyAmount > 0 ? (
                 <p>
-                  Se aplicará una penalización por baja anticipada del <strong>{info.penaltyRatePct}%</strong> de las{" "}
-                  <strong>{info.remainingMonths}</strong> cuotas pendientes: <strong>{money(info.penaltyAmount)}</strong>.
+                  Se aplicará una deducción del <strong>{info.penaltyRatePct}%</strong> sobre las{" "}
+                  <strong>{info.remainingMonths}</strong> cuotas no devengadas, en concepto de costes de
+                  regularización administrativa y ajuste del compromiso anual: <strong>{money(info.penaltyAmount)}</strong>.
                   Se cobrará de inmediato con su método de pago guardado al confirmar.
                 </p>
               ) : (
-                <p>No se aplicará penalización.</p>
+                <p>No se aplicará penalización — está dentro de los 3 primeros meses (periodo de prueba).</p>
               )}
             </>
           ) : (
             <p>Esta vivienda no tiene compromiso de permanencia pendiente. La baja será efectiva de inmediato y sin penalización.</p>
           )}
+          <p style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 14, lineHeight: 1.5 }}>
+            Derecho de desistimiento: conforme a la normativa española de protección al consumidor, dispone de 14
+            días naturales desde la firma del contrato para desistir sin coste alguno, tanto si es particular como
+            empresa. Nuestros 3 primeros meses de prueba sin penalización cubren y superan ese plazo legal.
+          </p>
         </div>
         <div className="field">
           <label>Motivo (opcional)</label>

@@ -164,7 +164,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     `Tipo de cliente: ${property.client_type === "empresa" ? "empresa" : "particular"}`,
     `Fecha de solicitud: ${fecha(new Date())}`,
     calc.insideCommitment
-      ? `Dentro del periodo de permanencia (hasta el ${fecha(calc.commitmentEnd!)}). Penalización aplicada: ${Math.round(calc.rate * 100)}% de las ${calc.remainingMonths} cuotas pendientes = ${money(calc.penaltyAmount)}${paymentIntentId ? " (cobrada)" : ""}.`
+      ? calc.penaltyAmount > 0
+        ? `Dentro del periodo de permanencia (hasta el ${fecha(calc.commitmentEnd!)}). Deducción aplicada: ${Math.round(calc.rate * 100)}% de las ${calc.remainingMonths} cuotas no devengadas = ${money(calc.penaltyAmount)}${paymentIntentId ? " (cobrada)" : ""}.`
+        : `Baja dentro de los 3 primeros meses (periodo de prueba): sin penalización. Solo se mantienen las cuotas de los meses ya transcurridos.`
       : `Sin compromiso de permanencia pendiente. Sin penalización. La baja es efectiva de inmediato.`,
     reason ? `Motivo indicado por el cliente: ${reason}` : null,
   ]
