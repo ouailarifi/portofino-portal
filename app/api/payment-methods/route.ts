@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
-
-async function getOrCreateStripeCustomer(supabase: any, userId: string, email: string | undefined) {
-  const { data: profile } = await supabase.from("profiles").select("stripe_customer_id").eq("id", userId).single();
-  if (profile?.stripe_customer_id) return profile.stripe_customer_id as string;
-
-  const customer = await stripe.customers.create({ email, metadata: { supabase_user_id: userId } });
-  await supabase.from("profiles").update({ stripe_customer_id: customer.id }).eq("id", userId);
-  return customer.id;
-}
+import { getOrCreateStripeCustomer } from "@/lib/stripe-customer";
 
 // Lista las tarjetas guardadas en Stripe para este cliente.
 export async function GET() {

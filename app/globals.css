@@ -102,12 +102,16 @@ a {
   color: var(--muted);
 }
 
-.field input {
+.field input,
+.field select,
+.field textarea {
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   font-size: 15px;
   font-family: inherit;
+  background: #fff;
+  resize: vertical;
 }
 
 .error {
