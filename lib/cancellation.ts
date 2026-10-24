@@ -48,3 +48,15 @@ export function computeCancellation(params: {
 function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
+
+// Estado de periodo de prueba / desistimiento legal, para la ficha de cliente.
+export function trialAndWithdrawalStatus(contractStartDate: string, billingMode: string, now: Date = new Date()) {
+  const start = new Date(contractStartDate);
+  const diasTranscurridos = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const meses = monthsElapsed(start, now);
+  return {
+    diasTranscurridos,
+    enPeriodoPrueba: billingMode === "annual" && meses < 3,
+    desistimientoVigente: diasTranscurridos < 14,
+  };
+}

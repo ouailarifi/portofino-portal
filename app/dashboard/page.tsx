@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 const PLAN_LABEL: Record<string, string> = {
@@ -9,6 +10,13 @@ const PLAN_LABEL: Record<string, string> = {
 
 export default async function DashboardPage() {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: profile } = user ? await supabase.from("profiles").select("role").eq("id", user.id).single() : { data: null };
+  if (profile?.role === "manager") redirect("/dashboard/manager/clientes");
+  if (profile?.role === "profesional") redirect("/dashboard/profesional");
 
   // RLS se encarga de que esto solo devuelva las viviendas del usuario
   // conectado — no hace falta (ni se debe) filtrar por client_id aquí.
