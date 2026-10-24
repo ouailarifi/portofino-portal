@@ -5,6 +5,8 @@ import { computeCancellation, trialAndWithdrawalStatus } from "@/lib/cancellatio
 import ClientDocumentsForm from "./client-documents-form";
 import AddQuoteRequestForm from "./add-quote-request-form";
 import AssignProfessionalSelect from "../../assign-professional-select";
+import ScheduleVisitForm from "./schedule-visit-form";
+import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
 const GREMIO_LABEL: Record<string, string> = {
@@ -48,6 +50,13 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
     supabase.from("payments").select("property_id, concept, amount, status").in("property_id", propertyIds.length ? propertyIds : ["-"]),
     supabase.from("client_documents").select("id, doc_type, label, storage_path, uploaded_at, property_id").eq("client_id", params.id),
   ]);
+
+  const { data: calendarEntries } = await supabase
+    .from("property_calendar_entries")
+    .select("property_id, entry_type, week_start")
+    .in("property_id", propertyIds.length ? propertyIds : ["-"])
+    .gte("week_start", toISODate(new Date()))
+    .order("week_start", { ascending: true });
 
   const { data: professionals } = await supabase
     .from("profiles")
@@ -140,7 +149,7 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
               </span>
             </div>
 
-            <div style={{ fontSize: 14 }}>
+            <div style={{ fontSize: 14, marginBottom: 14 }}>
               <span className="muted">Contrato: </span>
               {contract?.status === "firmado" ? (
                 <>Firmado como "{contract.signature_name}" el {new Date(contract.signed_at!).toLocaleDateString("es-ES")}{contract.url && <> — <a href={contract.url} target="_blank" rel="noreferrer">descargar</a></>}</>
@@ -148,6 +157,25 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
                 "Pendiente de firma"
               )}
             </div>
+
+            {(() => {
+              const propEntries = calendarEntries?.filter((e) => e.property_id === p.id) ?? [];
+              const ocupacion = propEntries.filter((e) => e.entry_type === "ocupacion").map((e) => e.week_start);
+              const preferidas = propEntries.filter((e) => e.entry_type === "visita_preferida").map((e) => e.week_start);
+              return (
+                <div style={{ borderTop: "1px solid var(--line)", paddingTop: 14 }}>
+                  <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>Semanas que el cliente estará en la vivienda:</div>
+                  <div style={{ fontSize: 14, marginBottom: 10 }}>
+                    {ocupacion.length ? ocupacion.map((w) => weekLabel(new Date(w))).join(", ") : "Ninguna marcada"}
+                  </div>
+                  <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>Semanas preferidas para la visita:</div>
+                  <div style={{ fontSize: 14, marginBottom: 14 }}>
+                    {preferidas.length ? preferidas.map((w) => weekLabel(new Date(w))).join(", ") : "Ninguna marcada"}
+                  </div>
+                  <ScheduleVisitForm propertyId={p.id} />
+                </div>
+              );
+            })()}
           </div>
         );
       })}

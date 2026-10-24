@@ -6,6 +6,7 @@ const CLIENT_NAV = [
   { href: "/dashboard", label: "Mis viviendas" },
   { href: "/dashboard/plan", label: "Mi plan" },
   { href: "/dashboard/solicitar-presupuesto", label: "Solicitar presupuesto" },
+  { href: "/dashboard/calendario", label: "Calendario" },
   { href: "/dashboard/presupuestos", label: "Presupuestos" },
   { href: "/dashboard/pagos", label: "Cobros" },
   { href: "/dashboard/documentacion", label: "Documentación" },
