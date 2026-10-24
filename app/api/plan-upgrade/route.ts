@@ -24,8 +24,8 @@ export async function POST(req: Request) {
 
   if (!property) return NextResponse.json({ error: "Vivienda no encontrada" }, { status: 404 });
 
-  if (PLAN_ORDER.indexOf(requestedPlan) <= PLAN_ORDER.indexOf(property.plan)) {
-    return NextResponse.json({ error: "Solo se puede pedir un plan superior al actual" }, { status: 400 });
+  if (requestedPlan === property.plan) {
+    return NextResponse.json({ error: "Ya tiene ese plan" }, { status: 400 });
   }
 
   const { error } = await supabase.from("plan_upgrade_requests").insert({
@@ -51,7 +51,9 @@ export async function POST(req: Request) {
           from: process.env.RESEND_FROM_EMAIL ?? "Portofino <notificaciones@portofino.com>",
           to: process.env.MANAGER_NOTIFICATION_EMAIL,
           subject: `Petición de cambio de plan — ${property.address}`,
-          text: `${user.email} ha pedido subir de plan "${property.plan}" a "${requestedPlan}" para la vivienda: ${property.address}.\n\nRevísalo en Supabase → Table Editor → plan_upgrade_requests.`,
+          text: `${user.email} ha pedido ${
+            PLAN_ORDER.indexOf(requestedPlan) > PLAN_ORDER.indexOf(property.plan) ? "subir" : "bajar"
+          } de plan "${property.plan}" a "${requestedPlan}" para la vivienda: ${property.address}.\n\nRevísalo en Supabase → Table Editor → plan_upgrade_requests.`,
         }),
       });
     } catch {

@@ -7,6 +7,7 @@ const NAV = [
   { href: "/dashboard/plan", label: "Mi plan" },
   { href: "/dashboard/presupuestos", label: "Presupuestos" },
   { href: "/dashboard/pagos", label: "Cobros" },
+  { href: "/dashboard/configuracion", label: "Configuración" },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

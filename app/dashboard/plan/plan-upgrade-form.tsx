@@ -18,13 +18,9 @@ export default function PlanUpgradeForm({
   currentPlan: string;
   pending: boolean;
 }) {
-  const higherPlans = PLAN_ORDER.slice(PLAN_ORDER.indexOf(currentPlan) + 1);
-  const [selected, setSelected] = useState(higherPlans[0] ?? "");
+  const otherPlans = PLAN_ORDER.filter((p) => p !== currentPlan);
+  const [selected, setSelected] = useState(otherPlans[0] ?? "");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-
-  if (!higherPlans.length) {
-    return <p className="muted" style={{ fontSize: 14 }}>Ya tiene el plan más alto disponible.</p>;
-  }
 
   if (pending) {
     return (
@@ -56,9 +52,9 @@ export default function PlanUpgradeForm({
         onChange={(e) => setSelected(e.target.value)}
         style={{ padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit" }}
       >
-        {higherPlans.map((p) => (
+        {otherPlans.map((p) => (
           <option key={p} value={p}>
-            Subir a {PLAN_LABEL[p]}
+            {PLAN_ORDER.indexOf(p) > PLAN_ORDER.indexOf(currentPlan) ? "Subir a" : "Bajar a"} {PLAN_LABEL[p]}
           </option>
         ))}
       </select>
