@@ -25,5 +25,17 @@ export async function POST(req: Request) {
   const { error } = await supabase.from(table).update({ [column]: professionalId || null }).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
+  // Al asignar un profesional a una visita o a un presupuesto, se le da su
+  // número de servicio único (si todavía no lo tenía) — ver decisión 2 en
+  // docs/fase9-fichas-y-liquidaciones.md. -01 visita de mantenimiento, -02
+  // trabajo por presupuesto fuera de las visitas contratadas.
+  if (professionalId && (type === "visit" || type === "quote")) {
+    const { data: row } = await supabase.from(table).select("service_number").eq("id", id).single();
+    if (row && !row.service_number) {
+      const { data: code } = await supabase.rpc("next_service_number", { p_kind: type === "visit" ? "01" : "02" });
+      if (code) await supabase.from(table).update({ service_number: code }).eq("id", id);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

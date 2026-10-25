@@ -130,6 +130,12 @@ Nuevo submenú dentro de Liquidaciones, con vista jerárquica Año → Mes:
     - Reembolso manual por Stripe a la tarjeta del cliente, listado pago a pago (reutiliza el botón ya existente de Liquidaciones).
     - Cobro manual (incluye el caso de cobrar la cuota inicial del plan flexible): se reutiliza el formulario de cobro manual ya existente, embebido en la ficha y preseleccionado para este cliente.
 
+- ✅ **Tarea 6 — Código de servicio real + ficha de profesional (servicios, pago por servicio, total facturado anual)**:
+  - El número de servicio (`SRV-2026-0001-01`/`-02`, decisión 2) ya se asigna de verdad: al asignar un profesional a una visita o a un presupuesto desde el selector existente (`AssignProfessionalSelect` → `/api/manager/assign`), si todavía no tenía número, se le asigna uno con `next_service_number()` (-01 visita, -02 presupuesto). Antes solo existía la función en la base de datos; ahora está conectada al flujo real.
+  - Ficha del profesional: cada visita y cada presupuesto asignado muestra su número de servicio, y si no está pagado aparece un botón "Pagar" (motivo + importe manual) que registra el pago como ya hecho por transferencia IBAN (un solo paso, no el flujo de dos pasos pendiente→pagado de Liquidaciones general, porque aquí el manager ya ha hecho la transferencia antes de entrar a registrarla) — nuevo endpoint `/api/manager/professional-payments/pay-now`, vinculado al `visit_id`/`quote_id` para la trazabilidad.
+  - Nueva tarjeta "Total facturado con nosotros en &lt;año&gt;": suma de todos los pagos (visitas + presupuestos) ya pagados al profesional este año.
+  - Pendiente, explícitamente aplazado por el usuario: NPS/valoración de clientes sobre el profesional (encuesta de satisfacción) — fase futura.
+
 ## Decisiones ya tomadas en fases anteriores (no se repiten)
 - Reembolsos a cliente: Stripe real a la misma tarjeta.
 - Régimen fiscal del usuario: Autónomo.
