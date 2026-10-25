@@ -115,9 +115,20 @@ Nuevo submenú dentro de Liquidaciones, con vista jerárquica Año → Mes:
 - ✅ **Tarea 4 — Alta de profesional y de cliente con los nuevos campos**:
   - Alta de profesional: añadidos tipo de documento (DNI/NIE/Pasaporte), dirección de domicilio fiscal y observaciones al formulario y a la ficha.
   - Alta de cliente: **nueva** (no existía ninguna UI de alta de cliente hasta ahora — los clientes se habían creado por SQL directo). Nuevo formulario "Dar de alta un cliente" en `/dashboard/manager/clientes` con nombre, email 1/2, teléfono español/2, tipo de documento + número, domicilio secundario y observaciones. La ficha del cliente ahora muestra estos campos.
-  - Pendiente, fuera del alcance de esta tarea: todavía no hay un formulario para añadir el domicilio contratado (vivienda/`properties`) a un cliente ya creado — hoy se sigue haciendo por SQL. Lo añadiremos cuando construyamos el bloque de Liquidaciones embebido en la ficha (tarea 5), ya que esa es la vivienda sobre la que se da de alta el cobro recurrente.
   - Subida de documentos del profesional ampliada con los nuevos tipos (DNI anverso/reverso, contrato de colaboración firmado, certificado de contratistas y subcontratistas) — ya hecho en una iteración anterior de esta fase.
   - Documentación del cliente y vinculación del contrato de colaboración: se reutiliza el flujo ya existente (Documentación / firma electrónica), no se duplica en el alta.
+  - Pendiente aparte de todas las tareas de Fase 9: seguir sin un formulario para añadir el domicilio contratado (vivienda/`properties`) a un cliente — hoy se sigue haciendo por SQL directo. No bloquea nada de lo construido hasta ahora porque el bloque de Liquidaciones y "dar de alta el pago recurrente" operan sobre viviendas ya existentes.
+- ✅ **Tarea 5 — Vista de ficha de cliente (cuotas/visitas/bonificaciones/notificaciones + Liquidaciones embebidas)**:
+  - Contador de visitas del mes y del año en curso (agregado de todas las viviendas del cliente), en una nueva tarjeta "Resumen".
+  - Bonificación: texto libre + importe manual, editable desde la propia ficha (`BonusForm` → `/api/manager/clients/[id]/bonus`), usando las columnas `bonus_note`/`bonus_amount` ya creadas en la tarea 2.
+  - Bandeja de "Notificaciones": solicitudes de cambio de plan (`plan_upgrade_requests`, con botones para aplicar el cambio de plan o descartar la petición — nuevo endpoint `/api/manager/plan-upgrade-requests/[id]/resolve`), bajas en curso (`properties.subscription_status = 'baja_solicitada'`), y mensajes escritos por el cliente (tabla nueva `client_messages`, con RLS: el cliente inserta/lee los suyos, el manager los lee y los marca como leídos). Las solicitudes de presupuesto ya tenían su propia tarjeta y siguen ahí (son también una notificación).
+  - **Nuevo**: los clientes ahora pueden escribir un mensaje libre al manager desde `/dashboard/mensajes` (añadido a su menú).
+  - Bloque de "Liquidaciones de esta vivienda" embebido dentro de cada tarjeta de vivienda en la ficha del cliente:
+    - Pausar/reanudar el cobro recurrente (reutiliza el botón ya existente de Liquidaciones).
+    - Cancelar (dar de baja) aplicando la misma lógica de periodo de prueba/desistimiento/30% que la baja autogestionada por el cliente — nuevo endpoint `/api/manager/properties/[id]/cancel`, con el cobro de la posible penalización a la tarjeta del cliente.
+    - Dar de alta el pago recurrente cuando el cliente no lo ha autogestionado: el manager elige plan, modalidad, cuota mensual, fecha de inicio y (opcional) fecha de fin — nuevo endpoint `/api/manager/properties/[id]/activate-recurring`. La fecha de fin se traduce en un `cancel_at` de la suscripción de Stripe (decisión técnica: Stripe no tiene un campo de "fecha de fin" aparte, así que se usa su propio mecanismo de cancelación programada en vez de añadir una columna nueva). Requiere que el cliente ya tenga un método de pago guardado.
+    - Reembolso manual por Stripe a la tarjeta del cliente, listado pago a pago (reutiliza el botón ya existente de Liquidaciones).
+    - Cobro manual (incluye el caso de cobrar la cuota inicial del plan flexible): se reutiliza el formulario de cobro manual ya existente, embebido en la ficha y preseleccionado para este cliente.
 
 ## Decisiones ya tomadas en fases anteriores (no se repiten)
 - Reembolsos a cliente: Stripe real a la misma tarjeta.

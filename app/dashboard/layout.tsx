@@ -10,6 +10,7 @@ const CLIENT_NAV = [
   { href: "/dashboard/presupuestos", label: "Presupuestos" },
   { href: "/dashboard/pagos", label: "Cobros" },
   { href: "/dashboard/documentacion", label: "Documentación" },
+  { href: "/dashboard/mensajes", label: "Mensajes" },
   { href: "/dashboard/configuracion", label: "Configuración" },
 ];
 

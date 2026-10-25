@@ -6,6 +6,14 @@ import ClientDocumentsForm from "./client-documents-form";
 import AddQuoteRequestForm from "./add-quote-request-form";
 import AssignProfessionalSelect from "../../assign-professional-select";
 import ScheduleVisitForm from "./schedule-visit-form";
+import BonusForm from "./bonus-form";
+import CancelPropertyButton from "./cancel-property-button";
+import ActivateRecurringForm from "./activate-recurring-form";
+import ResolvePlanRequestButtons from "./resolve-plan-request-buttons";
+import MarkMessageReadButton from "./mark-message-read-button";
+import PauseButton from "../../liquidaciones/pause-button";
+import RefundButton from "../../liquidaciones/refund-button";
+import ChargeClientForm from "../../liquidaciones/charge-client-form";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
@@ -34,13 +42,22 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
 
   const { data: properties } = await supabase
     .from("properties")
-    .select("id, address, plan, billing_mode, monthly_fee, client_type, contract_start_date, payment_setup_completed, subscription_status")
+    .select("id, address, plan, billing_mode, monthly_fee, client_type, contract_start_date, payment_setup_completed, subscription_status, payment_paused")
     .eq("client_id", params.id);
 
   const propertyIds = (properties ?? []).map((p) => p.id);
 
-  const [{ data: visits }, { data: quotes }, { data: quoteRequests }, { data: contracts }, { data: payments }, { data: docs }] = await Promise.all([
-    supabase.from("visits").select("id, property_id, status").in("property_id", propertyIds.length ? propertyIds : ["-"]),
+  const [
+    { data: visits },
+    { data: quotes },
+    { data: quoteRequests },
+    { data: contracts },
+    { data: payments },
+    { data: docs },
+    { data: planRequests },
+    { data: messages },
+  ] = await Promise.all([
+    supabase.from("visits").select("id, property_id, status, scheduled_date").in("property_id", propertyIds.length ? propertyIds : ["-"]),
     supabase.from("quotes").select("id, property_id, status, amount_total").in("property_id", propertyIds.length ? propertyIds : ["-"]),
     supabase
       .from("quote_requests")
@@ -48,8 +65,22 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
       .eq("client_id", params.id)
       .order("created_at", { ascending: false }),
     supabase.from("contracts").select("id, status, signature_name, signed_at, signed_storage_path, property_id").eq("client_id", params.id),
-    supabase.from("payments").select("property_id, concept, amount, status").in("property_id", propertyIds.length ? propertyIds : ["-"]),
+    supabase
+      .from("payments")
+      .select("id, property_id, concept, amount, currency, status, stripe_payment_intent_id")
+      .in("property_id", propertyIds.length ? propertyIds : ["-"])
+      .order("id", { ascending: false }),
     supabase.from("client_documents").select("id, doc_type, label, storage_path, uploaded_at, property_id").eq("client_id", params.id),
+    supabase
+      .from("plan_upgrade_requests")
+      .select("id, property_id, current_plan, requested_plan, status, created_at")
+      .eq("client_id", params.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("client_messages")
+      .select("id, message, created_at, read_at, property_id")
+      .eq("client_id", params.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const { data: calendarEntries } = await supabase
@@ -84,6 +115,24 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
     })
   );
 
+  const now = new Date();
+  const visitasEsteMes = (visits ?? []).filter((v) => {
+    if (!v.scheduled_date) return false;
+    const d = new Date(v.scheduled_date);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+  const visitasEsteAnio = (visits ?? []).filter((v) => {
+    if (!v.scheduled_date) return false;
+    return new Date(v.scheduled_date).getFullYear() === now.getFullYear();
+  }).length;
+
+  const pendingPlanRequests = (planRequests ?? []).filter((r) => r.status === "pendiente");
+  const bajasEnCurso = (properties ?? []).filter((p) => p.subscription_status === "baja_solicitada");
+  const unreadMessages = (messages ?? []).filter((m) => !m.read_at);
+  const notificacionesCount = pendingPlanRequests.length + bajasEnCurso.length + unreadMessages.length;
+
+  const propertyAddress = (id: string | null) => properties?.find((p) => p.id === id)?.address ?? "General";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
@@ -107,6 +156,60 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
             <strong>Observaciones:</strong> {client.observaciones}
           </p>
         )}
+      </div>
+
+      <div className="card">
+        <strong>Resumen</strong>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12, marginBottom: 14, fontSize: 14 }}>
+          <div><span className="muted">Visitas este mes:</span> {visitasEsteMes}</div>
+          <div><span className="muted">Visitas este año:</span> {visitasEsteAnio}</div>
+        </div>
+        <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>Bonificación</div>
+        {client.bonus_note || client.bonus_amount != null ? (
+          <p style={{ fontSize: 14, marginBottom: 10 }}>
+            {client.bonus_note ?? "—"} {client.bonus_amount != null && <strong>({money(client.bonus_amount)})</strong>}
+          </p>
+        ) : (
+          <p className="muted" style={{ fontSize: 14, marginBottom: 10 }}>Sin bonificaciones anotadas.</p>
+        )}
+        <BonusForm clientId={client.id} initialNote={client.bonus_note} initialAmount={client.bonus_amount} />
+      </div>
+
+      <div className="card">
+        <strong>Notificaciones{notificacionesCount > 0 && ` (${notificacionesCount})`}</strong>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+          {planRequests?.map((r) => (
+            <div key={r.id} className="visit-row" style={{ alignItems: "flex-start" }}>
+              <div>
+                <span style={{ fontSize: 14 }}>
+                  Cambio de plan en {propertyAddress(r.property_id)}: <strong>{PLAN_LABEL[r.current_plan] ?? r.current_plan}</strong> → <strong>{PLAN_LABEL[r.requested_plan] ?? r.requested_plan}</strong>
+                </span>
+                <div className="muted" style={{ fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString("es-ES")} — {r.status}</div>
+              </div>
+              {r.status === "pendiente" && <ResolvePlanRequestButtons requestId={r.id} />}
+            </div>
+          ))}
+          {bajasEnCurso.map((p) => (
+            <div key={p.id} className="visit-row">
+              <span style={{ fontSize: 14 }}>Baja solicitada — {p.address}</span>
+              <span className="muted" style={{ fontSize: 12 }}>Ver bloque de Liquidaciones más abajo</span>
+            </div>
+          ))}
+          {messages?.map((m) => (
+            <div key={m.id} className="visit-row" style={{ alignItems: "flex-start" }}>
+              <div>
+                <p style={{ fontSize: 14 }}>{m.message}</p>
+                <span className="muted" style={{ fontSize: 12 }}>
+                  {propertyAddress(m.property_id)} — {new Date(m.created_at).toLocaleString("es-ES")} {!m.read_at && "· sin leer"}
+                </span>
+              </div>
+              {!m.read_at && <MarkMessageReadButton messageId={m.id} />}
+            </div>
+          ))}
+          {!planRequests?.length && !bajasEnCurso.length && !messages?.length && (
+            <p className="muted" style={{ fontSize: 14 }}>Sin notificaciones.</p>
+          )}
+        </div>
       </div>
 
       {(properties ?? []).map((p) => {
@@ -138,6 +241,7 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
             <strong>{p.address}</strong>
             <div className="muted" style={{ fontSize: 13, marginBottom: 14 }}>
               Plan {PLAN_LABEL[p.plan] ?? p.plan} — {p.billing_mode === "annual" ? "Anual" : "Flexible"} — {p.client_type === "empresa" ? "Empresa" : "Particular"}
+              {p.subscription_status === "baja_solicitada" && <span style={{ color: "var(--gold)" }}> — Baja solicitada</span>}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, fontSize: 14, marginBottom: 14 }}>
@@ -167,6 +271,30 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
               )}
             </div>
 
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 14, marginBottom: 14 }}>
+              <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Liquidaciones de esta vivienda</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+                {p.payment_setup_completed ? (
+                  <>
+                    <PauseButton propertyId={p.id} initialPaused={!!p.payment_paused} />
+                    {p.subscription_status === "activa" && <CancelPropertyButton propertyId={p.id} />}
+                  </>
+                ) : (
+                  <ActivateRecurringForm propertyId={p.id} />
+                )}
+              </div>
+              {propPayments.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+                  {propPayments.map((pay: any) => (
+                    <div key={pay.id} className="visit-row" style={{ fontSize: 13 }}>
+                      <span>{pay.concept} — {money(pay.amount)} ({pay.status})</span>
+                      {pay.status === "cobrado" && pay.stripe_payment_intent_id && <RefundButton paymentId={pay.id} maxAmount={pay.amount} />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {(() => {
               const propEntries = calendarEntries?.filter((e) => e.property_id === p.id) ?? [];
               const ocupacion = propEntries.filter((e) => e.entry_type === "ocupacion").map((e) => e.week_start);
@@ -189,6 +317,13 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
         );
       })}
       {!properties?.length && <p className="muted">Este cliente todavía no tiene viviendas asociadas.</p>}
+
+      <div className="card">
+        <strong>Cobro manual a este cliente</strong>
+        <div style={{ marginTop: 14 }}>
+          <ChargeClientForm clients={[{ id: client.id, full_name: client.full_name }]} properties={(properties ?? []).map((p) => ({ id: p.id, address: p.address, client_id: client.id }))} />
+        </div>
+      </div>
 
       <div className="card">
         <strong>Solicitudes de presupuesto</strong>
