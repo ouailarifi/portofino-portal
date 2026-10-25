@@ -16,6 +16,7 @@ import RefundButton from "../../liquidaciones/refund-button";
 import ChargeClientForm from "../../liquidaciones/charge-client-form";
 import ManagerPaymentMethods from "../../liquidaciones/manager-payment-methods";
 import DeleteDocButton from "../../../documentacion/delete-doc-button";
+import GenerateInvoiceForm from "./generate-invoice-form";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
@@ -85,6 +86,12 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
       .order("created_at", { ascending: false }),
   ]);
 
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("id, series, number, concept, base_amount, iva_rate, total_amount, storage_path, sent_to, created_at")
+    .eq("client_id", params.id)
+    .order("created_at", { ascending: false });
+
   const { data: calendarEntries } = await supabase
     .from("property_calendar_entries")
     .select("property_id, entry_type, week_start")
@@ -103,6 +110,13 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
     (docs ?? []).map(async (d) => {
       const { data } = await service.storage.from("client-documents").createSignedUrl(d.storage_path, 3600);
       return { ...d, url: data?.signedUrl ?? null };
+    })
+  );
+
+  const invoicesWithUrls = await Promise.all(
+    (invoices ?? []).map(async (inv) => {
+      const { data } = await service.storage.from("invoices").createSignedUrl(inv.storage_path, 3600);
+      return { ...inv, url: data?.signedUrl ?? null };
     })
   );
 
@@ -325,6 +339,22 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
         <div style={{ marginTop: 14 }}>
           <ChargeClientForm clients={[{ id: client.id, full_name: client.full_name }]} properties={(properties ?? []).map((p) => ({ id: p.id, address: p.address, client_id: client.id }))} />
         </div>
+      </div>
+
+      <div className="card">
+        <strong>Facturación</strong>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14, marginBottom: 16 }}>
+          {invoicesWithUrls.map((inv) => (
+            <div key={inv.id} className="visit-row">
+              <span>
+                {inv.series}-{inv.number} — {inv.concept} — {money(inv.total_amount)} ({new Date(inv.created_at).toLocaleDateString("es-ES")})
+              </span>
+              {inv.url && <a href={inv.url} target="_blank" rel="noreferrer">Ver PDF</a>}
+            </div>
+          ))}
+          {!invoicesWithUrls.length && <p className="muted" style={{ fontSize: 14 }}>Sin facturas generadas todavía. Los recibos de cobros automáticos aparecerán aquí también.</p>}
+        </div>
+        <GenerateInvoiceForm clientId={client.id} properties={(properties ?? []).map((p) => ({ id: p.id, address: p.address }))} />
       </div>
 
       <div className="card">

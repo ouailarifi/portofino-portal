@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { computeCancellation } from "@/lib/cancellation";
+import { generateReceiptForPayment } from "@/lib/invoicing";
 
 const money = (n: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
 
@@ -95,15 +96,26 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   if (paymentIntentId) {
-    await supabase.from("payments").insert({
-      client_id: property.client_id,
-      property_id: property.id,
-      concept: "Penalización por baja anticipada",
-      amount: calc.penaltyAmount,
-      currency: "eur",
-      stripe_payment_intent_id: paymentIntentId,
-      status: "cobrado",
-    });
+    const { data: paymentRow } = await supabase
+      .from("payments")
+      .insert({
+        client_id: property.client_id,
+        property_id: property.id,
+        concept: "Penalización por baja anticipada",
+        amount: calc.penaltyAmount,
+        currency: "eur",
+        stripe_payment_intent_id: paymentIntentId,
+        status: "cobrado",
+      })
+      .select("id")
+      .single();
+    if (paymentRow) {
+      try {
+        await generateReceiptForPayment(paymentRow.id);
+      } catch {
+        // Un fallo al generar/enviar el recibo no debe romper el cobro ya hecho.
+      }
+    }
   }
 
   return NextResponse.json({ ok: true, penaltyAmount: calc.penaltyAmount, effectiveAt: calc.effectiveAt.toISOString() });

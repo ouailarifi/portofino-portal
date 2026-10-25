@@ -28,7 +28,7 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
   const { data: pro } = await supabase.from("profiles").select("*").eq("id", params.id).single();
   if (!pro) redirect("/dashboard/manager/profesionales");
 
-  const [{ data: docs }, { data: visits }, { data: quotes }, { data: requests }, { data: proPayments }] = await Promise.all([
+  const [{ data: docs }, { data: visits }, { data: quotes }, { data: requests }, { data: proPayments }, { data: invoices }] = await Promise.all([
     supabase.from("professional_documents").select("id, doc_type, label, storage_path").eq("professional_id", params.id),
     supabase.from("visits").select("id, scheduled_date, status, service_number, properties(address)").eq("professional_id", params.id),
     supabase.from("quotes").select("id, title, status, amount_total, service_number, properties(address)").eq("assigned_professional_id", params.id),
@@ -37,6 +37,11 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
       .from("professional_payments")
       .select("id, concept, amount, status, paid_at, visit_id, quote_id")
       .eq("professional_id", params.id),
+    supabase
+      .from("invoices")
+      .select("id, series, number, concept, total_amount, storage_path, created_at")
+      .eq("professional_id", params.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const paymentForVisit = (visitId: string) => proPayments?.find((p) => p.visit_id === visitId && p.status === "pagado");
@@ -52,6 +57,13 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
     (docs ?? []).map(async (d) => {
       const { data } = await service.storage.from("professional-documents").createSignedUrl(d.storage_path, 3600);
       return { ...d, url: data?.signedUrl ?? null };
+    })
+  );
+
+  const invoicesWithUrls = await Promise.all(
+    (invoices ?? []).map(async (inv) => {
+      const { data } = await service.storage.from("invoices").createSignedUrl(inv.storage_path, 3600);
+      return { ...inv, url: data?.signedUrl ?? null };
     })
   );
 
@@ -106,6 +118,19 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
         <strong>Total facturado con nosotros en {thisYear}</strong>
         <p style={{ fontSize: 24, marginTop: 10 }}>{money(totalFacturadoAnio)}</p>
         <p className="muted" style={{ fontSize: 13 }}>Suma de visitas y presupuestos ya pagados este año.</p>
+      </div>
+
+      <div className="card">
+        <strong>Autofacturas</strong>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
+          {invoicesWithUrls.map((inv) => (
+            <div key={inv.id} className="visit-row">
+              <span>{inv.series}-{inv.number} — {inv.concept} — {money(inv.total_amount)} ({new Date(inv.created_at).toLocaleDateString("es-ES")})</span>
+              {inv.url && <a href={inv.url} target="_blank" rel="noreferrer">Ver PDF</a>}
+            </div>
+          ))}
+          {!invoicesWithUrls.length && <p className="muted" style={{ fontSize: 14 }}>Se generan automáticamente al marcar un pago como pagado.</p>}
+        </div>
       </div>
 
       <div className="card">

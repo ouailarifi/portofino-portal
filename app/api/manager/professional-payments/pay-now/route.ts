@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { generateAutofacturaProfesional } from "@/lib/invoicing";
 
 async function requireManager(supabase: ReturnType<typeof createClient>) {
   const {
@@ -25,16 +26,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("professional_payments").insert({
-    professional_id: professionalId,
-    concept,
-    amount: Number(amount),
-    visit_id: visitId || null,
-    quote_id: quoteId || null,
-    status: "pagado",
-    paid_at: new Date().toISOString(),
-  });
+  const { data: payRow, error } = await supabase
+    .from("professional_payments")
+    .insert({
+      professional_id: professionalId,
+      concept,
+      amount: Number(amount),
+      visit_id: visitId || null,
+      quote_id: quoteId || null,
+      status: "pagado",
+      paid_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  if (payRow) {
+    try {
+      await generateAutofacturaProfesional(payRow.id);
+    } catch {
+      // Un fallo al generar/enviar la autofactura no debe romper el pago ya registrado.
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

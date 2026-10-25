@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { generateAutofacturaProfesional } from "@/lib/invoicing";
 
 // Pago manual: el dinero se transfiere de verdad por banco fuera de la app
 // (ver docs/fase9-fichas-y-liquidaciones.md — el pago por Stripe Connect a
@@ -21,6 +22,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     .update({ status: "pagado", paid_at: new Date().toISOString() })
     .eq("id", params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  try {
+    await generateAutofacturaProfesional(params.id);
+  } catch {
+    // Un fallo al generar/enviar la autofactura no debe romper el pago ya registrado.
+  }
 
   return NextResponse.json({ ok: true });
 }

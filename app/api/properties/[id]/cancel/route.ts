@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { computeCancellation } from "@/lib/cancellation";
+import { generateReceiptForPayment } from "@/lib/invoicing";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
 const fecha = (d: Date) => d.toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
@@ -146,15 +147,26 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   if (paymentIntentId) {
-    await supabase.from("payments").insert({
-      client_id: user.id,
-      property_id: property.id,
-      concept: "Penalización por baja anticipada",
-      amount: calc.penaltyAmount,
-      currency: "eur",
-      stripe_payment_intent_id: paymentIntentId,
-      status: "cobrado",
-    });
+    const { data: paymentRow } = await supabase
+      .from("payments")
+      .insert({
+        client_id: user.id,
+        property_id: property.id,
+        concept: "Penalización por baja anticipada",
+        amount: calc.penaltyAmount,
+        currency: "eur",
+        stripe_payment_intent_id: paymentIntentId,
+        status: "cobrado",
+      })
+      .select("id")
+      .single();
+    if (paymentRow) {
+      try {
+        await generateReceiptForPayment(paymentRow.id);
+      } catch {
+        // Un fallo al generar/enviar el recibo no debe romper el cobro ya hecho.
+      }
+    }
   }
 
   const resumen = [

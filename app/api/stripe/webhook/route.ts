@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
+import { generateReceiptForPayment } from "@/lib/invoicing";
 
 // Stripe llama aquí directamente (sin sesión de usuario), por eso la firma
 // se verifica con STRIPE_WEBHOOK_SECRET y se escribe con la clave de servicio.
@@ -29,15 +30,26 @@ export async function POST(req: Request) {
 
       if (property) {
         if (event.type === "invoice.payment_succeeded") {
-          await supabase.from("payments").insert({
-            client_id: property.client_id,
-            property_id: property.id,
-            concept: "Cuota mensual",
-            amount: (invoice.amount_paid ?? 0) / 100,
-            currency: invoice.currency ?? "eur",
-            stripe_payment_intent_id: invoice.payment_intent ?? invoice.id,
-            status: "cobrado",
-          });
+          const { data: paymentRow } = await supabase
+            .from("payments")
+            .insert({
+              client_id: property.client_id,
+              property_id: property.id,
+              concept: "Cuota mensual",
+              amount: (invoice.amount_paid ?? 0) / 100,
+              currency: invoice.currency ?? "eur",
+              stripe_payment_intent_id: invoice.payment_intent ?? invoice.id,
+              status: "cobrado",
+            })
+            .select("id")
+            .single();
+          if (paymentRow) {
+            try {
+              await generateReceiptForPayment(paymentRow.id);
+            } catch {
+              // Un fallo al generar/enviar el recibo no debe romper el cobro ya hecho.
+            }
+          }
         } else if (process.env.RESEND_API_KEY) {
           const { data: profile } = await supabase.from("profiles").select("email").eq("id", property.client_id).single();
           const notify = async (to: string) => {
@@ -76,16 +88,27 @@ export async function POST(req: Request) {
         .eq("id", quote_id)
         .eq("status", "pendiente");
 
-      await supabase.from("payments").insert({
-        client_id,
-        property_id,
-        quote_id,
-        concept: payment_concept === "compromiso_10" ? "Compromiso de obra (10%)" : "Pago",
-        amount: (session.amount_total ?? 0) / 100,
-        currency: session.currency ?? "eur",
-        stripe_payment_intent_id: session.payment_intent,
-        status: "cobrado",
-      });
+      const { data: paymentRow } = await supabase
+        .from("payments")
+        .insert({
+          client_id,
+          property_id,
+          quote_id,
+          concept: payment_concept === "compromiso_10" ? "Compromiso de obra (10%)" : "Pago",
+          amount: (session.amount_total ?? 0) / 100,
+          currency: session.currency ?? "eur",
+          stripe_payment_intent_id: session.payment_intent,
+          status: "cobrado",
+        })
+        .select("id")
+        .single();
+      if (paymentRow) {
+        try {
+          await generateReceiptForPayment(paymentRow.id);
+        } catch {
+          // Un fallo al generar/enviar el recibo no debe romper el cobro ya hecho.
+        }
+      }
 
       // Guarda el id de cliente de Stripe la primera vez, para listar sus cobros más adelante.
       if (session.customer) {

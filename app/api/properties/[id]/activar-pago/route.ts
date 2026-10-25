@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { getOrCreateStripeCustomer, getDefaultPaymentMethod } from "@/lib/stripe-customer";
+import { generateReceiptForPayment } from "@/lib/invoicing";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
 const ALTA_FLEXIBLE_CENTS = 12000; // 120€ fijos de alta en modalidad Flexible
@@ -143,15 +144,26 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     })
     .eq("id", property.id);
 
-  await supabase.from("payments").insert({
-    client_id: user.id,
-    property_id: property.id,
-    concept,
-    amount: amountCents / 100,
-    currency: "eur",
-    stripe_payment_intent_id: intentId,
-    status: "cobrado",
-  });
+  const { data: paymentRow } = await supabase
+    .from("payments")
+    .insert({
+      client_id: user.id,
+      property_id: property.id,
+      concept,
+      amount: amountCents / 100,
+      currency: "eur",
+      stripe_payment_intent_id: intentId,
+      status: "cobrado",
+    })
+    .select("id")
+    .single();
+  if (paymentRow) {
+    try {
+      await generateReceiptForPayment(paymentRow.id);
+    } catch {
+      // Un fallo al generar/enviar el recibo no debe romper el cobro ya hecho.
+    }
+  }
 
   const resumen = [
     `Vivienda: ${property.address}`,
