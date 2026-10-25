@@ -81,7 +81,7 @@ Nuevo submenú dentro de Liquidaciones, con vista jerárquica Año → Mes:
 - Total que entra / que sale en el periodo, con el listado de números de servicio asociados a cada movimiento
 - Para cada movimiento: enlace a su factura (si es un cobro) o autofactura (si es un pago), para no perder la trazabilidad de ningún servicio
 - Totales con IVA y sin IVA en cada vista (mensual y anual)
-- Pendiente del tipo de IVA aplicable — depende de los datos fiscales (decisión 4, aún sin confirmar)
+- Tipo de IVA: 21% general (cuotas de gestión y obras con materiales >40% de la base) / 10% reducido (mano de obra de mantenimiento en vivienda particular, o con materiales ≤40% de la base) — ver decisión 4
 
 ---
 
@@ -94,9 +94,13 @@ Nuevo submenú dentro de Liquidaciones, con vista jerárquica Año → Mes:
    - El sufijo `-02` = trabajo facturado por presupuesto, fuera de las visitas contratadas.
 3. **Bonificaciones del cliente:** campo de texto libre + importe manual opcional, anotado por el manager; no se aplica automáticamente a ningún cobro.
 
-## Pendiente de confirmar (bloqueante para facturación real)
-
-4. **Datos fiscales del emisor** — para generar facturas/autofacturas reales (no solo recibos informativos) necesito: razón social o nombre completo, NIF, dirección fiscal, y si aplica IVA (régimen general 21%, exento, u otro) y qué actividad/epígrafe se facturará.
+4. **Datos fiscales del emisor** — confirmados. Guardados como variables de entorno en Vercel (`ISSUER_NAME`, `ISSUER_NIF`, `ISSUER_ADDRESS`, `ISSUER_IVA_GENERAL=21`, `ISSUER_IVA_REDUCIDO=10`, `ISSUER_IAE_EPIGRAFE`), nunca en el código del repositorio.
+   - El usuario aún no está dado de alta como autónomo; el NIF/dirección son los suyos personales y se usarán tal cual una vez se dé de alta.
+   - Lógica de IVA aplicada por tipo de servicio:
+     - Cuotas de gestión (planes Flexible/Anual): siempre 21% (no es una reforma/reparación, es un servicio de gestión).
+     - Visita de mantenimiento (código `-01`): 10% si es solo mano de obra, o si aporta materiales cuyo coste no supera el 40% de la base imponible, y la vivienda es particular con más de 2 años de antigüedad. Si los materiales superan ese 40%, la operación completa pasa a tributar al 21% (no se puede dividir dentro de la misma factura).
+     - Trabajo por presupuesto (código `-02`): igual regla — depende de si el peso de los materiales supera o no el 40% de la base.
+   - Epígrafe IAE orientativo: 834.2 (administración de fincas / gestión de inmuebles) — pendiente de confirmar con una gestoría antes del alta real como autónomo; configurable sin tocar código.
 
 ## Decisiones ya tomadas en fases anteriores (no se repiten)
 - Reembolsos a cliente: Stripe real a la misma tarjeta.
