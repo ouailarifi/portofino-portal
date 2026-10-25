@@ -157,6 +157,12 @@ Nuevo submenú dentro de Liquidaciones, con vista jerárquica Año → Mes:
     2. El selector de IVA en el formulario manual ofrece 21%/10%/exento como opciones fijas; la decisión 4 ya documentada deja claro el criterio (mano de obra vs. materiales &gt;40%), pero la aplicación de ese criterio al elegir 21% vs 10% la sigue haciendo el manager a ojo, no el sistema — no se ha automatizado una sugerencia porque requeriría saber el desglose de materiales de cada servicio, dato que hoy no se registra en ningún sitio.
     3. Validación pendiente con una gestoría (ya anotada en la decisión 4): el epígrafe IAE 834.2 y el propio alta como autónomo. No afecta al código, solo a los valores reales de las variables de entorno el día que se dé de alta.
 
+- ✅ **Tarea 10 — Liquidaciones generales (vista jerárquica Año → Mes)**:
+  - Nueva página `/dashboard/manager/liquidaciones/generales`, enlazada desde el menú principal de Liquidaciones. Agrupa todas las filas de la tabla `invoices` (facturas y recibos a clientes = entradas; autofacturas a profesionales = salidas) por año y luego por mes, usando `<details>/<summary>` para que se pueda plegar/desplegar sin JavaScript adicional.
+  - Cada año y cada mes muestran el total de entradas y de salidas desglosado en base (sin IVA), IVA y total (con IVA).
+  - Cada movimiento individual enlaza directamente a su PDF (factura/recibo/autofactura) ya generado en la Tarea 9, con el nombre del cliente o profesional y el número de serie.
+  - No se ha creado ninguna tabla nueva para esto: se apoya íntegramente en lo ya construido en la Tarea 9 (`invoices` + storage), que es justo lo que hace posible esta vista sin tener que recalcular nada a partir de `payments`/`professional_payments`.
+
 ## Decisiones ya tomadas en fases anteriores (no se repiten)
 - Reembolsos a cliente: Stripe real a la misma tarjeta.
 - Régimen fiscal del usuario: Autónomo.

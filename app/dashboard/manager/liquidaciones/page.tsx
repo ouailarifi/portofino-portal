@@ -83,7 +83,12 @@ export default async function LiquidacionesPage({ searchParams }: { searchParams
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-      <h1 style={{ fontSize: 30 }}>Liquidaciones</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 10 }}>
+        <h1 style={{ fontSize: 30 }}>Liquidaciones</h1>
+        <Link href="/dashboard/manager/liquidaciones/generales" className="muted" style={{ fontSize: 14 }}>
+          Ver liquidaciones generales (Año → Mes, con/sin IVA) →
+        </Link>
+      </div>
 
       <div className="card">
         <strong>Selecciona un cliente o un profesional</strong>
