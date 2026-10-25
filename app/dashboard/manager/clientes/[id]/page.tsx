@@ -15,6 +15,7 @@ import PauseButton from "../../liquidaciones/pause-button";
 import RefundButton from "../../liquidaciones/refund-button";
 import ChargeClientForm from "../../liquidaciones/charge-client-form";
 import ManagerPaymentMethods from "../../liquidaciones/manager-payment-methods";
+import DeleteDocButton from "../../../documentacion/delete-doc-button";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
@@ -356,7 +357,10 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
           {docsWithUrls.map((d) => (
             <div key={d.id} className="visit-row">
               <span>{d.label || d.doc_type}</span>
-              {d.url && <a href={d.url} target="_blank" rel="noreferrer">Ver</a>}
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                {d.url && <a href={d.url} target="_blank" rel="noreferrer">Ver</a>}
+                <DeleteDocButton endpoint={`/api/client-documents/${d.id}`} />
+              </div>
             </div>
           ))}
           {!docsWithUrls.length && <p className="muted" style={{ fontSize: 14 }}>Sin documentos todavía.</p>}

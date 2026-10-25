@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import ProfessionalDocumentsForm from "./professional-documents-form";
 import PayServiceButton from "./pay-service-button";
+import DeleteDocButton from "../../../documentacion/delete-doc-button";
 
 const money = (n: number | null) => (n == null ? "—" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n));
 
@@ -90,7 +91,10 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
           {docsWithUrls.map((d) => (
             <div key={d.id} className="visit-row">
               <span>{DOC_LABEL[d.doc_type] ?? d.doc_type} — {d.label}</span>
-              {d.url && <a href={d.url} target="_blank" rel="noreferrer">Ver</a>}
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                {d.url && <a href={d.url} target="_blank" rel="noreferrer">Ver</a>}
+                <DeleteDocButton endpoint={`/api/professional-documents/${d.id}`} />
+              </div>
             </div>
           ))}
           {!docsWithUrls.length && <p className="muted" style={{ fontSize: 14 }}>Sin documentos todavía.</p>}

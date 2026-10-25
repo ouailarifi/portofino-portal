@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   if (typeof professionalId !== "string" || typeof docType !== "string") {
     return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
   }
-  if (!["rc_poliza", "rc_recibo", "dni", "certificado_bancario", "foto", "otro"].includes(docType)) {
+  if (!["rc_poliza", "rc_recibo", "dni", "dni_anverso", "dni_reverso", "contrato_colaboracion", "certificado_contratistas", "certificado_bancario", "foto", "otro"].includes(docType)) {
     return NextResponse.json({ error: "Tipo no válido" }, { status: 400 });
   }
 
