@@ -17,6 +17,7 @@ import ChargeClientForm from "../../liquidaciones/charge-client-form";
 import ManagerPaymentMethods from "../../liquidaciones/manager-payment-methods";
 import DeleteDocButton from "../../../documentacion/delete-doc-button";
 import GenerateInvoiceForm from "./generate-invoice-form";
+import AddPropertyForm from "./add-property-form";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
@@ -333,6 +334,14 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
         );
       })}
       {!properties?.length && <p className="muted">Este cliente todavía no tiene viviendas asociadas.</p>}
+
+      <div className="card">
+        <strong>Viviendas</strong>
+        <p className="muted" style={{ fontSize: 13, marginTop: 4, marginBottom: 14 }}>
+          Da de alta un nuevo domicilio contratado para este cliente. Aparecerá arriba con su propio bloque de Liquidaciones, plan y calendario.
+        </p>
+        <AddPropertyForm clientId={client.id} />
+      </div>
 
       <div className="card">
         <strong>Cobro manual a este cliente</strong>
