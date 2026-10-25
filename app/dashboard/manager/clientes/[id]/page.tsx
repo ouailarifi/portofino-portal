@@ -14,6 +14,7 @@ import MarkMessageReadButton from "./mark-message-read-button";
 import PauseButton from "../../liquidaciones/pause-button";
 import RefundButton from "../../liquidaciones/refund-button";
 import ChargeClientForm from "../../liquidaciones/charge-client-form";
+import ManagerPaymentMethods from "../../liquidaciones/manager-payment-methods";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
@@ -322,6 +323,13 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
         <strong>Cobro manual a este cliente</strong>
         <div style={{ marginTop: 14 }}>
           <ChargeClientForm clients={[{ id: client.id, full_name: client.full_name }]} properties={(properties ?? []).map((p) => ({ id: p.id, address: p.address, client_id: client.id }))} />
+        </div>
+      </div>
+
+      <div className="card">
+        <strong>Método de pago</strong>
+        <div style={{ marginTop: 14 }}>
+          <ManagerPaymentMethods clientId={client.id} />
         </div>
       </div>
 
