@@ -23,9 +23,16 @@ export default async function ManagerProfesionalesPage() {
 
   const { data: professionals } = await supabase
     .from("profiles")
-    .select("id, full_name, email, phone, gremio, codigo_profesional")
+    .select("id, full_name, email, phone, gremio, codigo_profesional, stripe_connect_status")
     .eq("role", "profesional")
     .order("codigo_profesional", { ascending: true });
+
+  const CONNECT_BADGE: Record<string, string> = {
+    not_started: "Sin alta en Stripe",
+    pendiente: "Alta pendiente",
+    en_revision: "En revisión",
+    activa: "Listo para pagar",
+  };
 
   return (
     <div>
@@ -40,7 +47,10 @@ export default async function ManagerProfesionalesPage() {
                 {GREMIO_LABEL[p.gremio ?? ""] ?? p.gremio ?? "Sin gremio"} — {p.email}
               </div>
             </div>
-            <span className="muted">Ver ficha →</span>
+            <div style={{ textAlign: "right" }}>
+              <div className="muted" style={{ fontSize: 12 }}>{CONNECT_BADGE[p.stripe_connect_status ?? "not_started"]}</div>
+              <span className="muted">Ver ficha →</span>
+            </div>
           </Link>
         ))}
         {!professionals?.length && <p className="muted">Todavía no hay profesionales.</p>}

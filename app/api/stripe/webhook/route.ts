@@ -94,5 +94,20 @@ export async function POST(req: Request) {
     }
   }
 
+  // Estado de la cuenta Stripe Connect de un profesional (onboarding, verificación)
+  if (event.type === "account.updated") {
+    const account = event.data.object as any;
+    const supabase = createServiceClient();
+    const status = account.charges_enabled && account.payouts_enabled
+      ? "activa"
+      : account.details_submitted
+      ? "en_revision"
+      : "pendiente";
+    await supabase
+      .from("profiles")
+      .update({ stripe_connect_status: status })
+      .eq("stripe_connect_account_id", account.id);
+  }
+
   return NextResponse.json({ received: true });
 }

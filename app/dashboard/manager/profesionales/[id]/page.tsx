@@ -2,6 +2,14 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import ProfessionalDocumentsForm from "./professional-documents-form";
+import ConnectOnboardingButton from "./connect-onboarding-button";
+
+const CONNECT_STATUS_LABEL: Record<string, string> = {
+  not_started: "Sin dar de alta en Stripe",
+  pendiente: "Alta iniciada, pendiente de completar",
+  en_revision: "Datos enviados, en revisión por Stripe",
+  activa: "Verificada — ya se le puede pagar",
+};
 
 const GREMIO_LABEL: Record<string, string> = {
   carpinteria_madera: "Carpintería de madera",
@@ -43,18 +51,38 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
     rc_poliza: "Póliza de RC",
     rc_recibo: "Recibo de RC",
     dni: "DNI",
+    dni_anverso: "DNI (anverso)",
+    dni_reverso: "DNI (reverso)",
+    contrato_colaboracion: "Contrato de colaboración firmado",
+    certificado_contratistas: "Certificado de contratistas y subcontratistas",
     certificado_bancario: "Certificado de cuenta bancaria",
     foto: "Foto",
     otro: "Otro",
   };
+
+  const DOCUMENT_TYPE_LABEL: Record<string, string> = { dni: "DNI", nie: "NIE", pasaporte: "Pasaporte" };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
         <h1 style={{ fontSize: 30, marginBottom: 6 }}>{pro.codigo_profesional} — {pro.full_name}</h1>
         <p className="muted" style={{ fontSize: 14 }}>
-          {GREMIO_LABEL[pro.gremio ?? ""] ?? pro.gremio ?? "Sin gremio"} — {pro.email} — {pro.phone ?? "sin teléfono"} — DNI {pro.dni ?? "—"}
+          {GREMIO_LABEL[pro.gremio ?? ""] ?? pro.gremio ?? "Sin gremio"} — {pro.email} — {pro.phone ?? "sin teléfono"} — {DOCUMENT_TYPE_LABEL[pro.document_type ?? "dni"]} {pro.dni ?? "—"}
         </p>
+        {pro.fiscal_address && <p className="muted" style={{ fontSize: 14 }}>Domicilio fiscal: {pro.fiscal_address}</p>}
+        {pro.observaciones && (
+          <p className="muted" style={{ fontSize: 14, marginTop: 6 }}>
+            <strong>Observaciones:</strong> {pro.observaciones}
+          </p>
+        )}
+      </div>
+
+      <div className="card">
+        <strong>Pagos por Stripe</strong>
+        <p className="muted" style={{ fontSize: 13, marginTop: 4, marginBottom: 14 }}>
+          Estado: {CONNECT_STATUS_LABEL[pro.stripe_connect_status ?? "not_started"]}
+        </p>
+        <ConnectOnboardingButton professionalId={pro.id} status={pro.stripe_connect_status ?? "not_started"} />
       </div>
 
       <div className="card">

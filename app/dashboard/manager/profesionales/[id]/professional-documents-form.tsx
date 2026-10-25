@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 const TYPES = [
   { value: "rc_poliza", label: "Póliza de RC" },
   { value: "rc_recibo", label: "Recibo de RC" },
-  { value: "dni", label: "DNI" },
+  { value: "dni_anverso", label: "DNI (anverso)" },
+  { value: "dni_reverso", label: "DNI (reverso)" },
+  { value: "contrato_colaboracion", label: "Contrato de colaboración firmado" },
+  { value: "certificado_contratistas", label: "Certificado de contratistas y subcontratistas" },
   { value: "certificado_bancario", label: "Certificado de cuenta bancaria" },
   { value: "foto", label: "Foto" },
   { value: "otro", label: "Otro" },
@@ -14,7 +17,7 @@ const TYPES = [
 
 export default function ProfessionalDocumentsForm({ professionalId }: { professionalId: string }) {
   const router = useRouter();
-  const [docType, setDocType] = useState("dni");
+  const [docType, setDocType] = useState("dni_anverso");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
