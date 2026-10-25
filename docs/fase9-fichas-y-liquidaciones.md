@@ -16,7 +16,7 @@ Especificación tal como la ha pedido el usuario (25 oct 2026), organizada antes
   - Contrato de colaboración firmado
   - Certificado de contratistas y subcontratistas
 - Zona de observaciones (texto libre)
-- ❓ Datos bancarios/tarjeta para pagarle vía Stripe — ver sección "Pagos a profesionales" (bloqueante, ver preguntas).
+- Alta en Stripe Connect (IBAN) para poder pagarle por Stripe — ver decisión 1 más abajo.
 
 ## B. Alta de cliente — campos de la ficha
 - Nombre, apellidos
@@ -35,7 +35,7 @@ Especificación tal como la ha pedido el usuario (25 oct 2026), organizada antes
 - Tipo de plan (ya existe)
 - Días/meses restantes de periodo de prueba, si aplica (ya existe `trialAndWithdrawalStatus`)
 - Visitas en el mes en curso y en el año en curso (contador)
-- Bonificaciones — ❓ ver preguntas
+- Bonificaciones — texto libre + importe manual opcional (ver decisión 3)
 - Notificaciones / bandeja de la ficha: solicitudes de presupuesto, solicitud de cambio de plan, solicitud de baja, mensajes escritos por el cliente
 - Bloque de Liquidaciones **dentro de la propia ficha** (no solo en el menú general):
   - Pausar cobro recurrente
@@ -47,7 +47,7 @@ Especificación tal como la ha pedido el usuario (25 oct 2026), organizada antes
 ## D. Vista al entrar en la ficha de un profesional
 - Documentación cargada, con opción de volver a subir (sustituir) cada documento si caduca/cambia
 - Listado de visitas/servicios realizados, con estado pagado/no pagado
-- Para cada servicio no pagado: botón "Pagar" → introducir motivo + cantidad manual → se envía (ver preguntas sobre el método de envío)
+- Para cada servicio no pagado: botón "Pagar" → introducir motivo + cantidad manual → se envía por Stripe Connect a la cuenta bancaria del profesional
 - Confirmado: los profesionales **nunca** tienen pagos recurrentes, todo es manual por servicio
 - Total facturado con nosotros por año (agregado de presupuestos libres + visitas), con detalle de servicios
 - NPS / valoración de clientes sobre el profesional — cuando se lance la encuesta de satisfacción (fase futura, ya anotada en pendientes)
@@ -74,29 +74,29 @@ Flujo: seleccionar **Cliente** o **Profesional** → seleccionar la persona → 
 - Cada servicio (presupuesto aceptado o visita) recibe un número de servicio único, asignado también al profesional que lo realiza
 - Todo pago/cobro relacionado con ese servicio queda vinculado a su número
 - La factura/autofactura de ese servicio incluye: número de servicio, dirección de la vivienda, importe facturado
-- ❓ Formato del código — ver preguntas (propuesta por defecto: `SRV-2026-0001`, correlativo por año)
+- Formato: `SRV-2026-0001-01` (visita de mantenimiento) / `SRV-2026-0001-02` (trabajo por presupuesto fuera de las visitas contratadas) — ver decisión 2
 
 ## I. "Liquidaciones generales" — vista global mensual/anual
 Nuevo submenú dentro de Liquidaciones, con vista jerárquica Año → Mes:
 - Total que entra / que sale en el periodo, con el listado de números de servicio asociados a cada movimiento
 - Para cada movimiento: enlace a su factura (si es un cobro) o autofactura (si es un pago), para no perder la trazabilidad de ningún servicio
 - Totales con IVA y sin IVA en cada vista (mensual y anual)
-- ❓ Tipo de IVA aplicable — ver preguntas
+- Pendiente del tipo de IVA aplicable — depende de los datos fiscales (decisión 4, aún sin confirmar)
 
 ---
 
-## Preguntas pendientes (antes de construir, para no inventar)
+## Decisiones tomadas en esta fase (25 oct 2026)
 
-1. **Pago a profesionales por Stripe** — en la fase de Liquidaciones ya construida se decidió que los pagos a profesionales fueran manuales/transferencia bancaria fuera de Stripe (sin movimiento de dinero por la plataforma). Esta petición pide ahora que también se les pague "a su tarjeta" vía Stripe. Stripe no permite un simple "enviar a una tarjeta" de un tercero sin que ese tercero tenga una cuenta Stripe Connect (verificación de identidad incluida) o sin usar Stripe Issuing con aprobación especial para "push-to-card" — ninguna de las dos está configurada hoy. Hay que elegir:
-   - Stripe Connect (Express/Custom) con cuenta bancaria (IBAN) — cada profesional completa un alta de verificación de identidad una vez, y luego los pagos se hacen por transferencia real a través de Stripe. Es la vía realista y la más mantenible.
-   - Mantener como está ahora: registro en la app + pago real por transferencia bancaria manual fuera de Stripe (lo que ya se construyó). Más simple, cero fricción de onboarding para el profesional, pero el dinero no "viaja" por Stripe.
-   - Investigar Stripe Issuing push-to-card (requiere aprobación específica de Stripe para este caso de uso; no está garantizado que esté disponible en España para este tipo de cuenta).
+1. **Pago a profesionales → Stripe Connect con IBAN.** Cada profesional completará una vez un alta de verificación de identidad en Stripe (Connect); a partir de ahí los pagos por visitas/presupuestos se hacen por transferencia real a través de Stripe, con trazabilidad completa. Sustituye al pago manual/transferencia bancaria fuera de Stripe decidido en la fase anterior.
+2. **Formato del código de servicio:** `SRV-2026-0001-01` / `SRV-2026-0001-02`, donde:
+   - El bloque `SRV-2026-0001` es el número de servicio correlativo del año.
+   - El sufijo `-01` = visita de mantenimiento dentro del plan contratado.
+   - El sufijo `-02` = trabajo facturado por presupuesto, fuera de las visitas contratadas.
+3. **Bonificaciones del cliente:** campo de texto libre + importe manual opcional, anotado por el manager; no se aplica automáticamente a ningún cobro.
 
-2. **Datos fiscales del emisor** — para generar facturas/autofacturas reales (no solo recibos informativos) necesito: razón social o nombre completo, NIF, dirección fiscal, y si aplica IVA (régimen general 21%, exento, u otro) y qué actividad/epígrafe se facturará.
+## Pendiente de confirmar (bloqueante para facturación real)
 
-3. **Formato del código de servicio** — ¿`SRV-2026-0001` (correlativo anual) te vale, o prefieres otro formato?
-
-4. **Bonificaciones del cliente** — ¿qué forma debe tener? ¿un campo de texto libre con importe opcional que el manager anota manualmente, o quieres que se aplique automáticamente como descuento en la próxima cuota?
+4. **Datos fiscales del emisor** — para generar facturas/autofacturas reales (no solo recibos informativos) necesito: razón social o nombre completo, NIF, dirección fiscal, y si aplica IVA (régimen general 21%, exento, u otro) y qué actividad/epígrafe se facturará.
 
 ## Decisiones ya tomadas en fases anteriores (no se repiten)
 - Reembolsos a cliente: Stripe real a la misma tarjeta.
