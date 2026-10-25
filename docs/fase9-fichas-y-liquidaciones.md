@@ -87,7 +87,12 @@ Nuevo submenú dentro de Liquidaciones, con vista jerárquica Año → Mes:
 
 ## Decisiones tomadas en esta fase (25 oct 2026)
 
-1. **Pago a profesionales → Stripe Connect con IBAN.** Cada profesional completará una vez un alta de verificación de identidad en Stripe (Connect); a partir de ahí los pagos por visitas/presupuestos se hacen por transferencia real a través de Stripe, con trazabilidad completa. Sustituye al pago manual/transferencia bancaria fuera de Stripe decidido en la fase anterior.
+1. **Pago a profesionales → ⚠️ REVERTIDO a manual.** El usuario eligió Stripe Connect con IBAN, pero al intentar construirlo (25 oct 2026) se comprobó contra la documentación real de Stripe que no es viable ahora:
+   - Esta cuenta de Stripe, al activar Connect, quedó en la API nueva "Accounts v2" (ya no permite crear cuentas Connect clásicas vía `v1/accounts`, que es el método simple y lo que yo había asumido al tomar la decisión).
+   - Con v2, para que el dinero llegue de verdad a un IBAN hace falta el stack completo de "Treasury for platforms" (cuenta financiera + dirección financiera + método de cobro + pago saliente), y el paso final de pago en EUR a un banco español está en **"private preview"** de Stripe: no se puede activar por API ni por el dashboard, hay que pedir acceso a Stripe sin garantía de cuándo (ni de si) lo conceden.
+   - Se revirtió el código: `app/api/manager/professional-payments/[id]/pay/route.ts` vuelve a ser un registro manual (sin movimiento real de dinero por Stripe); se eliminó la ruta/botón de onboarding de Stripe Connect y el handler `account.updated` del webhook.
+   - Las columnas `profiles.stripe_connect_account_id` / `stripe_connect_status` se dejan en la base de datos sin usar, por si en el futuro se consigue el acceso de Stripe y se retoma.
+   - **Opciones reales para el usuario**: (a) seguir como ahora — registro en la app + transferencia bancaria real hecha por él fuera de Stripe (lo que ya funcionaba); (b) pedir a Stripe acceso a Treasury for platforms / EUR outbound payments (contacto comercial, sin plazo garantizado) y retomar esto cuando lo concedan; (c) revisar manualmente en el Dashboard de Stripe si existe alguna vía de cuentas Connect clásicas pese a lo visto por API — no confirmado, pendiente si el usuario quiere comprobarlo él mismo.
 2. **Formato del código de servicio:** `SRV-2026-0001-01` / `SRV-2026-0001-02`, donde:
    - El bloque `SRV-2026-0001` es el número de servicio correlativo del año.
    - El sufijo `-01` = visita de mantenimiento dentro del plan contratado.
