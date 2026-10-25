@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import CreateClientForm from "./create-client-form";
 
 export default async function ManagerClientesPage() {
   const supabase = createClient();
@@ -34,6 +35,13 @@ export default async function ManagerClientesPage() {
           </Link>
         ))}
         {!clients?.length && <p className="muted">Todavía no hay clientes.</p>}
+      </div>
+
+      <div className="card" style={{ maxWidth: 560, marginTop: 28 }}>
+        <strong>Dar de alta un cliente</strong>
+        <div style={{ marginTop: 14 }}>
+          <CreateClientForm />
+        </div>
       </div>
     </div>
   );

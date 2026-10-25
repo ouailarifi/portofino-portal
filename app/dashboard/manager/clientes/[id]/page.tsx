@@ -9,6 +9,7 @@ import ScheduleVisitForm from "./schedule-visit-form";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
+const DOCUMENT_TYPE_LABEL: Record<string, string> = { dni: "DNI", nie: "NIE", pasaporte: "Pasaporte" };
 const GREMIO_LABEL: Record<string, string> = {
   carpinteria_madera: "Carpintería de madera",
   albanileria_reforma: "Albañilería / reforma",
@@ -93,11 +94,19 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
       <div className="card">
         <strong>Datos personales</strong>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12, fontSize: 14 }}>
-          <div><span className="muted">DNI:</span> {client.dni ?? "—"}</div>
+          <div><span className="muted">{DOCUMENT_TYPE_LABEL[client.document_type ?? "dni"]}:</span> {client.dni ?? "—"}</div>
           <div><span className="muted">Teléfono:</span> {client.phone ?? "—"}</div>
+          <div><span className="muted">Email 2:</span> {client.email_2 ?? "—"}</div>
+          <div><span className="muted">Teléfono 2:</span> {client.phone_2 ?? "—"}</div>
+          <div><span className="muted">Domicilio secundario:</span> {client.secondary_address ?? "—"}</div>
           <div><span className="muted">Persona de contacto:</span> {client.contact_name ?? "—"}</div>
           <div><span className="muted">Teléfono de contacto:</span> {client.contact_phone ?? "—"}</div>
         </div>
+        {client.observaciones && (
+          <p className="muted" style={{ fontSize: 14, marginTop: 10 }}>
+            <strong>Observaciones:</strong> {client.observaciones}
+          </p>
+        )}
       </div>
 
       {(properties ?? []).map((p) => {

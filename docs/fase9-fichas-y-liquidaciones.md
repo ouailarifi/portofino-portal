@@ -108,6 +108,17 @@ Nuevo submenú dentro de Liquidaciones, con vista jerárquica Año → Mes:
      - Trabajo por presupuesto (código `-02`): igual regla — depende de si el peso de los materiales supera o no el 40% de la base.
    - Epígrafe IAE orientativo: 834.2 (administración de fincas / gestión de inmuebles) — pendiente de confirmar con una gestoría antes del alta real como autónomo; configurable sin tocar código.
 
+## Progreso de implementación
+
+- ✅ **Tarea 2 — Esquema de base de datos**: columnas nuevas en `profiles` (document_type, secondary_address, email_2, phone_2, observaciones, fiscal_address, bonus_note, bonus_amount, stripe_connect_account_id/status), tablas/función de número de servicio (`service_number_counters`, `next_service_number`), columnas `service_number` en `visits`/`quotes`.
+- ✅ **Tarea 3 — Pago a profesionales**: cerrada, ver decisión 1 (manual por IBAN).
+- ✅ **Tarea 4 — Alta de profesional y de cliente con los nuevos campos**:
+  - Alta de profesional: añadidos tipo de documento (DNI/NIE/Pasaporte), dirección de domicilio fiscal y observaciones al formulario y a la ficha.
+  - Alta de cliente: **nueva** (no existía ninguna UI de alta de cliente hasta ahora — los clientes se habían creado por SQL directo). Nuevo formulario "Dar de alta un cliente" en `/dashboard/manager/clientes` con nombre, email 1/2, teléfono español/2, tipo de documento + número, domicilio secundario y observaciones. La ficha del cliente ahora muestra estos campos.
+  - Pendiente, fuera del alcance de esta tarea: todavía no hay un formulario para añadir el domicilio contratado (vivienda/`properties`) a un cliente ya creado — hoy se sigue haciendo por SQL. Lo añadiremos cuando construyamos el bloque de Liquidaciones embebido en la ficha (tarea 5), ya que esa es la vivienda sobre la que se da de alta el cobro recurrente.
+  - Subida de documentos del profesional ampliada con los nuevos tipos (DNI anverso/reverso, contrato de colaboración firmado, certificado de contratistas y subcontratistas) — ya hecho en una iteración anterior de esta fase.
+  - Documentación del cliente y vinculación del contrato de colaboración: se reutiliza el flujo ya existente (Documentación / firma electrónica), no se duplica en el alta.
+
 ## Decisiones ya tomadas en fases anteriores (no se repiten)
 - Reembolsos a cliente: Stripe real a la misma tarjeta.
 - Régimen fiscal del usuario: Autónomo.

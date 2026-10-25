@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   const auth = await requireManager(supabase);
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  const { fullName, email, phone, gremio, dni } = await req.json().catch(() => ({}));
+  const { fullName, email, phone, gremio, dni, documentType, fiscalAddress, observaciones } = await req.json().catch(() => ({}));
   if (!fullName || !email) return NextResponse.json({ error: "Nombre y email son obligatorios" }, { status: 400 });
 
   const service = createServiceClient();
@@ -60,6 +60,9 @@ export async function POST(req: Request) {
     full_name: fullName,
     phone: phone || null,
     dni: dni || null,
+    document_type: documentType || "dni",
+    fiscal_address: fiscalAddress || null,
+    observaciones: observaciones || null,
     gremio: gremio || null,
     codigo_profesional: codigo,
     role: "profesional",
