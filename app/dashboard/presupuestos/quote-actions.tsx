@@ -11,6 +11,8 @@ export default function QuoteActions({ quoteId, amountTotal }: { quoteId: string
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rejected, setRejected] = useState(false);
+  const [showReject, setShowReject] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const supabase = createClient();
 
   const deposit = amountTotal * 0.1;
@@ -20,10 +22,17 @@ export default function QuoteActions({ quoteId, amountTotal }: { quoteId: string
   async function handleReject() {
     setBusy(true);
     setError(null);
-    const { error } = await supabase.rpc("respond_to_quote", { p_quote_id: quoteId, p_decision: "rechazado" });
+    const { error } = await supabase.rpc("respond_to_quote", {
+      p_quote_id: quoteId,
+      p_decision: "rechazado",
+      p_rejection_reason: rejectReason.trim() || null,
+    });
     setBusy(false);
     if (error) setError(error.message);
-    else setRejected(true);
+    else {
+      setShowReject(false);
+      setRejected(true);
+    }
   }
 
   async function handleConfirmAccept() {
@@ -48,7 +57,7 @@ export default function QuoteActions({ quoteId, amountTotal }: { quoteId: string
           Aceptar presupuesto
         </button>
         <button
-          onClick={handleReject}
+          onClick={() => setShowReject(true)}
           disabled={busy}
           style={{
             background: "none",
@@ -63,6 +72,47 @@ export default function QuoteActions({ quoteId, amountTotal }: { quoteId: string
         </button>
       </div>
       {error && <p className="error" style={{ marginTop: 12 }}>{error}</p>}
+
+      {showReject && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(14,29,64,0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            zIndex: 50,
+          }}
+        >
+          <div className="card" style={{ maxWidth: 480 }}>
+            <h2 style={{ fontSize: 20, marginBottom: 12 }}>Rechazar presupuesto</h2>
+            <p className="muted" style={{ fontSize: 14, marginBottom: 12 }}>
+              Indíquenos brevemente el motivo (opcional). Ayuda al equipo de Portofino a ajustar futuras propuestas.
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
+              style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid var(--line)", fontFamily: "inherit", fontSize: 14, marginBottom: 16 }}
+              placeholder="Ej.: el precio excede lo esperado, prefiero esperar, encontré otra opción…"
+            />
+            <div style={{ display: "flex", gap: 12 }}>
+              <button className="btn" onClick={handleReject} disabled={busy}>
+                {busy ? "Enviando…" : "Confirmar rechazo"}
+              </button>
+              <button
+                onClick={() => setShowReject(false)}
+                disabled={busy}
+                style={{ background: "none", border: "1px solid var(--line)", borderRadius: 8, padding: "13px 22px", cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showLegal && (
         <div
