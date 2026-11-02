@@ -40,9 +40,11 @@ export default function VisitRatesForm({ professionalId, rates }: { professional
 
   return (
     <div className="card">
-      <strong>Tarifas por tipo de visita</strong>
+      <strong>Visitas adicionales fuera del plan</strong>
       <p className="muted" style={{ fontSize: 13, marginTop: 6, marginBottom: 14 }}>
-        Referencia de precio por tipo de visita para este profesional. Al pagar un servicio, consulta aquí el importe.
+        Catálogo de precios orientativos para reparaciones o visitas extra no cubiertas por el plan del cliente (p. ej. una pequeña
+        reparación). Son una referencia para rellenar el importe al crear una incidencia de reparación — el cobro al cliente por su
+        plan mensual no depende de esto.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
         {rates.map((r) => (
@@ -63,7 +65,7 @@ export default function VisitRatesForm({ professionalId, rates }: { professional
           required
           value={visitType}
           onChange={(e) => setVisitType(e.target.value)}
-          placeholder="Ej.: Visita estándar"
+          placeholder="Ej.: Cambio de bombilla"
           style={{ flex: "1 1 180px", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, fontFamily: "inherit" }}
         />
         <input
