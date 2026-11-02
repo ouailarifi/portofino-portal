@@ -139,6 +139,12 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
           ))}
           {!invoicesWithUrls.length && <p className="muted" style={{ fontSize: 14 }}>Se generan automáticamente al marcar un pago como pagado.</p>}
         </div>
+        <div style={{ borderTop: "1px solid var(--line)", marginTop: 14, paddingTop: 14 }}>
+          <p className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
+            Pago manual sin visita/presupuesto en el sistema (p. ej. trabajo de un mes anterior no registrado). Genera su propia autofactura.
+          </p>
+          <PayServiceButton professionalId={pro.id} defaultConcept="" />
+        </div>
       </div>
 
       <div className="card">
