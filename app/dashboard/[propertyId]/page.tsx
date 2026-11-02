@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import IncidentConsent from "./incident-consent";
 
 const STATUS_LABEL: Record<string, string> = {
   programada: "Programada",
@@ -29,12 +30,24 @@ export default async function PropertyVisitsPage({
     .eq("property_id", params.propertyId)
     .order("scheduled_date", { ascending: false });
 
+  const { data: pendingIncidents } = await supabase
+    .from("incidents")
+    .select("id, description, repair_price")
+    .eq("property_id", params.propertyId)
+    .eq("type", "reparacion")
+    .eq("covered_by_plan", false)
+    .eq("client_consent_status", "pendiente");
+
   return (
     <div>
       <p className="muted" style={{ marginBottom: 4 }}>
         <Link href="/dashboard">← Sus viviendas</Link>
       </p>
       <h1 style={{ fontSize: 32, marginBottom: 24 }}>{property.address}</h1>
+
+      {(pendingIncidents ?? []).map((inc) => (
+        <IncidentConsent key={inc.id} incidentId={inc.id} description={inc.description} price={inc.repair_price != null ? Number(inc.repair_price) : null} />
+      ))}
 
       <h2 style={{ fontSize: 20, marginBottom: 16 }}>Historial de visitas</h2>
 

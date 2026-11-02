@@ -18,6 +18,7 @@ import ManagerPaymentMethods from "../../liquidaciones/manager-payment-methods";
 import DeleteDocButton from "../../../documentacion/delete-doc-button";
 import GenerateInvoiceForm from "./generate-invoice-form";
 import AddPropertyForm from "./add-property-form";
+import IncidentsPanel from "./incidents-panel";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
@@ -105,6 +106,12 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
     .select("id, full_name, codigo_profesional")
     .eq("role", "profesional")
     .order("codigo_profesional", { ascending: true });
+
+  const { data: incidents } = await supabase
+    .from("incidents")
+    .select("*")
+    .in("property_id", propertyIds.length ? propertyIds : ["-"])
+    .order("created_at", { ascending: false });
 
   const service = createServiceClient();
   const docsWithUrls = await Promise.all(
@@ -311,6 +318,8 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
                 </div>
               )}
             </div>
+
+            <IncidentsPanel propertyId={p.id} incidents={(incidents ?? []).filter((inc) => inc.property_id === p.id)} />
 
             {(() => {
               const propEntries = calendarEntries?.filter((e) => e.property_id === p.id) ?? [];

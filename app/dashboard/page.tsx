@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import NpsPrompt from "./nps-prompt";
 
 const PLAN_LABEL: Record<string, string> = {
   essential: "Essential",
@@ -27,9 +28,18 @@ export default async function DashboardPage() {
 
   const pendingSetup = properties?.filter((p) => !p.payment_setup_completed) ?? [];
 
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const { count: npsThisMonth } = await supabase
+    .from("nps_responses")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", monthStart);
+  const showNps = (npsThisMonth ?? 0) === 0 && (properties?.length ?? 0) > 0;
+
   return (
     <div>
       <h1 style={{ fontSize: 36, marginBottom: 24 }}>Sus viviendas</h1>
+
+      {showNps && <NpsPrompt propertyId={properties![0].id} />}
 
       {pendingSetup.length > 0 && (
         <div className="card" style={{ marginBottom: 24, borderColor: "var(--gold)" }}>
