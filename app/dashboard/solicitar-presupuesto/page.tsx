@@ -9,7 +9,7 @@ export default async function SolicitarPresupuestoPage() {
     <div style={{ maxWidth: 640 }}>
       <h1 style={{ fontSize: 30, marginBottom: 8 }}>Solicitar presupuesto</h1>
       <p className="muted" style={{ marginBottom: 24 }}>
-        Cuéntenos qué necesita y le llamaremos para darle un presupuesto.
+        Cuéntenos qué necesita — reforma, reparación o cualquier trabajo en su vivienda — y le enviaremos un presupuesto para que lo acepte o rechace.
       </p>
       <div className="card">
         <QuoteRequestForm properties={properties ?? []} />

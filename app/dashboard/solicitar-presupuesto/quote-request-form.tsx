@@ -12,20 +12,28 @@ const GREMIOS = [
 
 export default function QuoteRequestForm({ properties }: { properties: { id: string; address: string }[] }) {
   const [propertyId, setPropertyId] = useState(properties[0]?.id ?? "");
-  const [gremio, setGremio] = useState(GREMIOS[0].value);
+  const [gremios, setGremios] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  function toggleGremio(value: string) {
+    setGremios((prev) => (prev.includes(value) ? prev.filter((g) => g !== value) : [...prev, value]));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!gremios.length) {
+      setError("Seleccione al menos un gremio");
+      return;
+    }
     setBusy(true);
     setError(null);
     const res = await fetch("/api/quote-requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ propertyId: propertyId || null, gremio, description }),
+      body: JSON.stringify({ propertyId: propertyId || null, gremios, description }),
     });
     const data = await res.json();
     setBusy(false);
@@ -35,13 +43,14 @@ export default function QuoteRequestForm({ properties }: { properties: { id: str
     }
     setDone(true);
     setDescription("");
+    setGremios([]);
   }
 
   if (done) {
     return (
       <div>
         <p style={{ fontSize: 14, color: "var(--gold)", marginBottom: 16 }}>
-          Solicitud enviada. Le llamaremos en breve para darle un presupuesto.
+          Solicitud enviada. Le enviaremos un presupuesto para que lo acepte o rechace.
         </p>
         <button className="btn" onClick={() => setDone(false)}>
           Enviar otra solicitud
@@ -67,14 +76,15 @@ export default function QuoteRequestForm({ properties }: { properties: { id: str
       )}
 
       <div className="field">
-        <label>Gremio</label>
-        <select value={gremio} onChange={(e) => setGremio(e.target.value)}>
+        <label>Gremios necesarios (puede elegir varios)</label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
           {GREMIOS.map((g) => (
-            <option key={g.value} value={g.value}>
+            <label key={g.value} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 400 }}>
+              <input type="checkbox" checked={gremios.includes(g.value)} onChange={() => toggleGremio(g.value)} />
               {g.label}
-            </option>
+            </label>
           ))}
-        </select>
+        </div>
       </div>
 
       <div className="field">
@@ -83,7 +93,7 @@ export default function QuoteRequestForm({ properties }: { properties: { id: str
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={5}
-          placeholder="Describa el trabajo que necesita para que podamos valorarlo y llamarle con un presupuesto"
+          placeholder="Describa detalladamente el trabajo que necesita. La fecha dependerá de la disponibilidad de nuestros profesionales — le enviaremos un presupuesto para que lo acepte o rechace."
           required
         />
       </div>

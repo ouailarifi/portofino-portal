@@ -33,8 +33,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = user ? await supabase.from("profiles").select("role").eq("id", user.id).single() : { data: null };
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("role, status").eq("id", user.id).single()
+    : { data: null };
   const NAV = profile?.role === "manager" ? MANAGER_NAV : profile?.role === "profesional" ? PROFESIONAL_NAV : CLIENT_NAV;
+
+  if (profile && profile.role !== "manager" && profile.status !== "activo") {
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 32 }}>
+          <SignOutButton />
+        </div>
+        <div className="card" style={{ maxWidth: 480, margin: "60px auto", textAlign: "center" }}>
+          <strong>Acceso {profile.status === "pausado" ? "pausado" : "desactivado"}</strong>
+          <p className="muted" style={{ marginTop: 12 }}>
+            Su cuenta está {profile.status === "pausado" ? "temporalmente pausada" : "dada de baja"}. Póngase en contacto con Portofino si cree que es un error.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

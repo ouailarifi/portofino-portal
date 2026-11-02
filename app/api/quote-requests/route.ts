@@ -34,9 +34,15 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const { propertyId, gremio, description } = await req.json().catch(() => ({}));
+  const body = await req.json().catch(() => ({}));
+  const { propertyId, description } = body;
+  // Compatibilidad: acepta un único gremio (gremio) o varios (gremios[]) — el
+  // cliente puede necesitar más de un oficio para la misma reforma.
+  const gremios: string[] = Array.isArray(body.gremios) ? body.gremios : body.gremio ? [body.gremio] : [];
 
-  if (!GREMIO_LABEL[gremio]) return NextResponse.json({ error: "Gremio no válido" }, { status: 400 });
+  if (!gremios.length || gremios.some((g) => !GREMIO_LABEL[g])) {
+    return NextResponse.json({ error: "Seleccione al menos un gremio válido" }, { status: 400 });
+  }
   if (!description || !description.trim()) return NextResponse.json({ error: "Describa lo que necesita" }, { status: 400 });
 
   let propertyAddress: string | null = null;
@@ -46,22 +52,26 @@ export async function POST(req: Request) {
     propertyAddress = property.address;
   }
 
-  const { error } = await supabase.from("quote_requests").insert({
-    client_id: user.id,
-    property_id: propertyId || null,
-    gremio,
-    description: description.trim(),
-  });
+  // Una fila por gremio seleccionado (misma descripción), para que el manager
+  // pueda presupuestar y asignar profesional por oficio de forma independiente.
+  const { error } = await supabase.from("quote_requests").insert(
+    gremios.map((gremio) => ({
+      client_id: user.id,
+      property_id: propertyId || null,
+      gremio,
+      description: description.trim(),
+    }))
+  );
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   if (process.env.MANAGER_NOTIFICATION_EMAIL) {
     await sendEmail(
       process.env.MANAGER_NOTIFICATION_EMAIL,
-      `Nueva solicitud de presupuesto — ${GREMIO_LABEL[gremio]}`,
+      `Nueva solicitud de presupuesto — ${gremios.map((g) => GREMIO_LABEL[g]).join(", ")}`,
       [
         `Cliente: ${user.email}`,
         propertyAddress ? `Vivienda: ${propertyAddress}` : null,
-        `Gremio: ${GREMIO_LABEL[gremio]}`,
+        `Gremios: ${gremios.map((g) => GREMIO_LABEL[g]).join(", ")}`,
         "",
         "Descripción del cliente:",
         description.trim(),

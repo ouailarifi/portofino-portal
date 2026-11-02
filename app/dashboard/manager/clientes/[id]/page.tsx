@@ -18,6 +18,8 @@ import ManagerPaymentMethods from "../../liquidaciones/manager-payment-methods";
 import DeleteDocButton from "../../../documentacion/delete-doc-button";
 import GenerateInvoiceForm from "./generate-invoice-form";
 import AddPropertyForm from "./add-property-form";
+import StatusToggle from "../../status-toggle";
+import TicketPauseButton from "./ticket-pause-button";
 import IncidentsPanel from "./incidents-panel";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
@@ -47,7 +49,9 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
 
   const { data: properties } = await supabase
     .from("properties")
-    .select("id, address, plan, billing_mode, monthly_fee, client_type, contract_start_date, payment_setup_completed, subscription_status, payment_paused")
+    .select(
+      "id, address, plan, billing_mode, monthly_fee, client_type, contract_start_date, payment_setup_completed, subscription_status, payment_paused, assigned_professional_id, ticket_generation_paused"
+    )
     .eq("client_id", params.id);
 
   const propertyIds = (properties ?? []).map((p) => p.id);
@@ -160,7 +164,10 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h1 style={{ fontSize: 30, marginBottom: 6 }}>{client.full_name}</h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+          <h1 style={{ fontSize: 30, marginBottom: 6 }}>{client.full_name}</h1>
+          <StatusToggle id={client.id} status={client.status ?? "activo"} kind="clients" />
+        </div>
         <p className="muted" style={{ fontSize: 14 }}>{client.email}</p>
       </div>
 
@@ -296,6 +303,17 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
             </div>
 
             <div style={{ borderTop: "1px solid var(--line)", paddingTop: 14, marginBottom: 14 }}>
+              <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Tickets de visita ({PLAN_LABEL[p.plan] ?? p.plan})</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+                <span className="muted" style={{ fontSize: 13 }}>Profesional asignado:</span>
+                <AssignProfessionalSelect type="property" id={p.id} current={p.assigned_professional_id} professionals={professionals ?? []} />
+                {p.plan === "platinum" ? (
+                  <span className="muted" style={{ fontSize: 12 }}>Platinum: tickets manuales, sin generación automática</span>
+                ) : (
+                  <TicketPauseButton propertyId={p.id} initialPaused={!!p.ticket_generation_paused} />
+                )}
+              </div>
+
               <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Liquidaciones de esta vivienda</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
                 {p.payment_setup_completed ? (

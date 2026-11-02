@@ -9,7 +9,7 @@ export default function AssignProfessionalSelect({
   current,
   professionals,
 }: {
-  type: "quote_request" | "quote" | "visit";
+  type: "quote_request" | "quote" | "visit" | "property";
   id: string;
   current: string | null;
   professionals: { id: string; full_name: string; codigo_profesional: string | null }[];

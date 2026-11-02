@@ -5,6 +5,7 @@ const TABLES = {
   quote_request: "quote_requests",
   quote: "quotes",
   visit: "visits",
+  property: "properties",
 } as const;
 
 export async function POST(req: Request) {

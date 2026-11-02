@@ -5,6 +5,7 @@ import ProfessionalDocumentsForm from "./professional-documents-form";
 import PayServiceButton from "./pay-service-button";
 import VisitRatesForm from "./visit-rates-form";
 import DeleteDocButton from "../../../documentacion/delete-doc-button";
+import StatusToggle from "../../status-toggle";
 
 const money = (n: number | null) => (n == null ? "—" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n));
 
@@ -87,7 +88,10 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h1 style={{ fontSize: 30, marginBottom: 6 }}>{pro.codigo_profesional} — {pro.full_name}</h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+          <h1 style={{ fontSize: 30, marginBottom: 6 }}>{pro.codigo_profesional} — {pro.full_name}</h1>
+          <StatusToggle id={pro.id} status={pro.status ?? "activo"} kind="professionals" />
+        </div>
         <p className="muted" style={{ fontSize: 14 }}>
           {GREMIO_LABEL[pro.gremio ?? ""] ?? pro.gremio ?? "Sin gremio"} — {pro.email} — {pro.phone ?? "sin teléfono"} — {DOCUMENT_TYPE_LABEL[pro.document_type ?? "dni"]} {pro.dni ?? "—"}
         </p>
