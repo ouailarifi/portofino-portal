@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import ProfessionalDocumentsForm from "./professional-documents-form";
 import PayServiceButton from "./pay-service-button";
+import VisitRatesForm from "./visit-rates-form";
 import DeleteDocButton from "../../../documentacion/delete-doc-button";
 
 const money = (n: number | null) => (n == null ? "—" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n));
@@ -28,7 +29,7 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
   const { data: pro } = await supabase.from("profiles").select("*").eq("id", params.id).single();
   if (!pro) redirect("/dashboard/manager/profesionales");
 
-  const [{ data: docs }, { data: visits }, { data: quotes }, { data: requests }, { data: proPayments }, { data: invoices }] = await Promise.all([
+  const [{ data: docs }, { data: visits }, { data: quotes }, { data: requests }, { data: proPayments }, { data: invoices }, { data: visitRates }] = await Promise.all([
     supabase.from("professional_documents").select("id, doc_type, label, storage_path").eq("professional_id", params.id),
     supabase.from("visits").select("id, scheduled_date, status, service_number, properties(address)").eq("professional_id", params.id),
     supabase.from("quotes").select("id, title, status, amount_total, service_number, properties(address)").eq("assigned_professional_id", params.id),
@@ -42,6 +43,7 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
       .select("id, series, number, concept, total_amount, storage_path, created_at")
       .eq("professional_id", params.id)
       .order("created_at", { ascending: false }),
+    supabase.from("professional_visit_rates").select("id, visit_type, price").eq("professional_id", params.id).order("visit_type"),
   ]);
 
   const paymentForVisit = (visitId: string) => proPayments?.find((p) => p.visit_id === visitId && p.status === "pagado");
@@ -113,6 +115,8 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
         </div>
         <ProfessionalDocumentsForm professionalId={pro.id} />
       </div>
+
+      <VisitRatesForm professionalId={pro.id} rates={(visitRates ?? []).map((r) => ({ ...r, price: Number(r.price) }))} />
 
       <div className="card">
         <strong>Total facturado con nosotros en {thisYear}</strong>

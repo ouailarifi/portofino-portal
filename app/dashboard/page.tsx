@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   const { data: profile } = user ? await supabase.from("profiles").select("role").eq("id", user.id).single() : { data: null };
-  if (profile?.role === "manager") redirect("/dashboard/manager/clientes");
+  if (profile?.role === "manager") redirect("/dashboard/manager");
   if (profile?.role === "profesional") redirect("/dashboard/profesional");
 
   // RLS se encarga de que esto solo devuelva las viviendas del usuario
