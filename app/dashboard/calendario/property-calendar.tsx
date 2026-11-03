@@ -15,10 +15,29 @@ export default function PropertyCalendar({ propertyId, entries }: { propertyId: 
     return entries.some((e) => e.week_start === weekIso && e.entry_type === type);
   }
 
+  const OTHER: Record<Entry["entry_type"], Entry["entry_type"]> = {
+    ocupacion: "visita_preferida",
+    visita_preferida: "ocupacion",
+  };
+
   async function toggle(weekIso: string, type: Entry["entry_type"]) {
     const key = `${weekIso}-${type}`;
     setBusyKey(key);
     const active = has(weekIso, type);
+
+    // "Voy a estar" y "Prefiero visita" son excluyentes en la misma semana:
+    // si va a estar en la vivienda esa semana no tiene sentido pedir la
+    // visita esa misma semana, y viceversa. Al activar uno, desactivamos
+    // primero el otro si estaba marcado.
+    const other = OTHER[type];
+    if (!active && has(weekIso, other)) {
+      await fetch("/api/calendar", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyId, entryType: other, weekStart: weekIso }),
+      });
+    }
+
     await fetch("/api/calendar", {
       method: active ? "DELETE" : "POST",
       headers: { "Content-Type": "application/json" },

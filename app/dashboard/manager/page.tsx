@@ -1,5 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import ResolvePlanRequestButtons from "./clientes/[id]/resolve-plan-request-buttons";
+
+const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
 
 const money = (n: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
 
@@ -45,6 +49,7 @@ export default async function ManagerInicioPage() {
     { data: visitasMes },
     { data: npsRows },
     { count: incidenciasAbiertas },
+    { data: planRequests },
   ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "profesional").eq("status", "activo"),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "cliente").eq("status", "activo"),
@@ -55,6 +60,11 @@ export default async function ManagerInicioPage() {
     supabase.from("visits").select("status, scheduled_date, completed_date").or(`scheduled_date.gte.${monthStartDate},completed_date.gte.${monthStartDate}`),
     supabase.from("nps_responses").select("score").gte("created_at", new Date(Date.now() - 90 * 86400000).toISOString()),
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("status", "abierta"),
+    supabase
+      .from("plan_upgrade_requests")
+      .select("id, current_plan, requested_plan, created_at, client_id, property_id, profiles:client_id(full_name), properties:property_id(address)")
+      .eq("status", "pendiente")
+      .order("created_at", { ascending: true }),
   ]);
 
   const facturacionMes = (invoicesMes ?? []).reduce((s, i) => s + Number(i.total_amount), 0);
@@ -98,6 +108,27 @@ export default async function ManagerInicioPage() {
     <div>
       <h1 style={{ fontSize: 32, marginBottom: 8 }}>Inicio</h1>
       <p className="muted" style={{ marginBottom: 28 }}>Visión general del negocio</p>
+
+      {!!planRequests?.length && (
+        <div className="card" style={{ marginBottom: 24, borderColor: "var(--gold)" }}>
+          <strong>Solicitudes de cambio de plan pendientes ({planRequests.length})</strong>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+            {planRequests.map((r: any) => (
+              <div key={r.id} className="visit-row" style={{ alignItems: "flex-start" }}>
+                <div>
+                  <span style={{ fontSize: 14 }}>
+                    <Link href={`/dashboard/manager/clientes/${r.client_id}`}>{r.profiles?.full_name ?? "Cliente"}</Link>
+                    {" — "}
+                    {r.properties?.address} : <strong>{PLAN_LABEL[r.current_plan] ?? r.current_plan}</strong> → <strong>{PLAN_LABEL[r.requested_plan] ?? r.requested_plan}</strong>
+                  </span>
+                  <div className="muted" style={{ fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString("es-ES")}</div>
+                </div>
+                <ResolvePlanRequestButtons requestId={r.id} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div
         style={{

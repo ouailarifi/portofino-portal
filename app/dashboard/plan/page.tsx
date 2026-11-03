@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PlanUpgradeForm from "./plan-upgrade-form";
 
@@ -53,6 +54,12 @@ export default async function PlanPage() {
               </span>
             </div>
             <PlanUpgradeForm propertyId={p.id} currentPlan={p.plan} pending={pendingByProperty.has(p.id)} />
+
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+              <Link href={`/dashboard/${p.id}`} className="muted" style={{ fontSize: 13 }}>
+                Ver historial de visitas e informes en PDF →
+              </Link>
+            </div>
           </div>
         ))}
 
