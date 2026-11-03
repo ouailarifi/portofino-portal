@@ -10,6 +10,7 @@ const GREMIO_LABEL: Record<string, string> = {
   cristaleria: "Cristalería",
   carpinteria_metalica: "Carpintería metálica",
   reforma_general: "Reforma general",
+  pintura: "Pintura",
 };
 const money = (n: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
 const STATUS_LABEL: Record<string, string> = { pendiente: "Pendiente de respuesta del cliente", aceptado: "Aceptado", rechazado: "Rechazado" };

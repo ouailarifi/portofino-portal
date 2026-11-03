@@ -9,6 +9,7 @@ const GREMIOS = [
   { value: "cristaleria", label: "Cristalería" },
   { value: "carpinteria_metalica", label: "Carpintería metálica" },
   { value: "reforma_general", label: "Reforma general" },
+  { value: "pintura", label: "Pintura" },
 ];
 const CANALES = [
   { value: "email", label: "Email" },

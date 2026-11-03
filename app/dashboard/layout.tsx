@@ -56,6 +56,30 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const isClient = profile?.role !== "manager" && profile?.role !== "profesional";
 
+  let pendingAlta = false;
+  if (isClient && user) {
+    const { count } = await supabase
+      .from("properties")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", user.id)
+      .eq("payment_setup_completed", false);
+    pendingAlta = !!count;
+  }
+
+  if (pendingAlta) {
+    return (
+      <div className="client-shell">
+        <div className="mobile-only" style={{ justifyContent: "flex-end", marginBottom: 16 }}>
+          <SignOutButton />
+        </div>
+        <div className="desktop-nav" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 32 }}>
+          <SignOutButton />
+        </div>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className={isClient ? "client-shell" : ""}>
       <div

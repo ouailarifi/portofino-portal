@@ -7,6 +7,7 @@ const GREMIO_LABEL: Record<string, string> = {
   cristaleria: "Cristalería",
   carpinteria_metalica: "Carpintería metálica",
   reforma_general: "Reforma general",
+  pintura: "Pintura",
 };
 
 async function sendEmail(to: string, subject: string, text: string) {

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import QuoteActions from "./quote-actions";
 import NewRequestToggle from "./new-request-toggle";
+import DeleteQuoteButton from "./delete-quote-button";
 
 const STATUS_LABEL: Record<string, string> = {
   pendiente: "Pendiente de respuesta",
@@ -20,6 +21,7 @@ const GREMIO_LABEL: Record<string, string> = {
   cristaleria: "Cristalería",
   carpinteria_metalica: "Carpintería metálica",
   reforma_general: "Reforma general",
+  pintura: "Pintura",
 };
 
 const SIGNED_URL_TTL = 60 * 10;
@@ -54,6 +56,14 @@ export default async function PresupuestosPage({
   const pendingRequests = (requests ?? []).filter((r) => r.status !== "cerrado");
 
   const addressByProperty = new Map((properties ?? []).map((p) => [p.id, p.address]));
+
+  const quoteIds = (quotes ?? []).map((q) => q.id);
+  const { data: paidPayments } = await supabase
+    .from("payments")
+    .select("quote_id")
+    .in("quote_id", quoteIds.length ? quoteIds : ["00000000-0000-0000-0000-000000000000"])
+    .eq("status", "cobrado");
+  const chargedQuoteIds = new Set((paidPayments ?? []).map((p) => p.quote_id));
 
   const quotesWithUrls = await Promise.all(
     (quotes ?? []).map(async (q) => {
@@ -128,6 +138,12 @@ export default async function PresupuestosPage({
             )}
 
             {q.status === "pendiente" && <QuoteActions quoteId={q.id} amountTotal={q.amount_total} />}
+
+            {!(q.status === "aceptado" && chargedQuoteIds.has(q.id)) && (
+              <div style={{ marginTop: 12 }}>
+                <DeleteQuoteButton quoteId={q.id} />
+              </div>
+            )}
           </div>
         ))}
       </div>

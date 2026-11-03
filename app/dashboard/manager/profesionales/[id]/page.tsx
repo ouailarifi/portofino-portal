@@ -15,6 +15,7 @@ const GREMIO_LABEL: Record<string, string> = {
   cristaleria: "Cristalería",
   carpinteria_metalica: "Carpintería metálica",
   reforma_general: "Reforma general",
+  pintura: "Pintura",
 };
 
 export default async function ProfesionalFichaPage({ params }: { params: { id: string } }) {

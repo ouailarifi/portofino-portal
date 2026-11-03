@@ -21,6 +21,7 @@ import AddPropertyForm from "./add-property-form";
 import StatusToggle from "../../status-toggle";
 import TicketPauseButton from "./ticket-pause-button";
 import VisitArrivalButtons from "./visit-arrival-buttons";
+import UploadVisitReportForm from "./upload-visit-report-form";
 import IncidentsPanel from "./incidents-panel";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
@@ -32,6 +33,7 @@ const GREMIO_LABEL: Record<string, string> = {
   cristaleria: "Cristalería",
   carpinteria_metalica: "Carpintería metálica",
   reforma_general: "Reforma general",
+  pintura: "Pintura",
 };
 const money = (n: number | null) => (n == null ? "—" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n));
 
@@ -96,6 +98,13 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
       .eq("client_id", params.id)
       .order("created_at", { ascending: false }),
   ]);
+
+  const visitIds = (visits ?? []).map((v) => v.id);
+  const { data: visitReports } = await supabase
+    .from("visit_reports")
+    .select("visit_id")
+    .in("visit_id", visitIds.length ? visitIds : ["-"]);
+  const visitIdsWithReport = new Set((visitReports ?? []).map((r) => r.visit_id));
 
   const { data: invoices } = await supabase
     .from("invoices")
@@ -253,6 +262,9 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
         const propQuotes = quotes?.filter((q) => q.property_id === p.id) ?? [];
         const propPayments = payments?.filter((pay) => pay.property_id === p.id) ?? [];
         const contract = contractsWithUrls.find((c) => c.property_id === p.id);
+        const propEntries = calendarEntries?.filter((e) => e.property_id === p.id) ?? [];
+        const ocupacion = propEntries.filter((e) => e.entry_type === "ocupacion").map((e) => e.week_start);
+        const preferidas = propEntries.filter((e) => e.entry_type === "visita_preferida").map((e) => e.week_start);
 
         const calc = computeCancellation({
           billingMode: p.billing_mode,
@@ -327,7 +339,10 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
                         {v.service_number ? `${v.service_number} — ` : ""}
                         {v.scheduled_date ?? "sin fecha"} — {v.profiles?.full_name ?? "sin profesional"}
                       </span>
-                      <VisitArrivalButtons visitId={v.id} arrivedAt={v.arrived_at} departedAt={v.departed_at} />
+                      <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <UploadVisitReportForm visitId={v.id} hasReport={visitIdsWithReport.has(v.id)} />
+                        <VisitArrivalButtons visitId={v.id} arrivedAt={v.arrived_at} departedAt={v.departed_at} />
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -358,24 +373,25 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
 
             <IncidentsPanel propertyId={p.id} incidents={(incidents ?? []).filter((inc) => inc.property_id === p.id)} />
 
-            {(() => {
-              const propEntries = calendarEntries?.filter((e) => e.property_id === p.id) ?? [];
-              const ocupacion = propEntries.filter((e) => e.entry_type === "ocupacion").map((e) => e.week_start);
-              const preferidas = propEntries.filter((e) => e.entry_type === "visita_preferida").map((e) => e.week_start);
-              return (
-                <div style={{ borderTop: "1px solid var(--line)", paddingTop: 14 }}>
-                  <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>Semanas que el cliente estará en la vivienda:</div>
-                  <div style={{ fontSize: 14, marginBottom: 10 }}>
-                    {ocupacion.length ? ocupacion.map((w) => weekLabel(new Date(w))).join(", ") : "Ninguna marcada"}
-                  </div>
-                  <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>Semanas preferidas para la visita:</div>
-                  <div style={{ fontSize: 14, marginBottom: 14 }}>
-                    {preferidas.length ? preferidas.map((w) => weekLabel(new Date(w))).join(", ") : "Ninguna marcada"}
-                  </div>
-                  <ScheduleVisitForm propertyId={p.id} />
-                </div>
-              );
-            })()}
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 14 }}>
+              <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>Semanas que el cliente estará en la vivienda:</div>
+              <div style={{ fontSize: 14, marginBottom: 10 }}>
+                {ocupacion.length ? ocupacion.map((w) => weekLabel(new Date(w))).join(", ") : "Ninguna marcada"}
+              </div>
+              <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>Semanas preferidas para la visita:</div>
+              <div style={{ fontSize: 14, marginBottom: 14 }}>
+                {preferidas.length ? preferidas.map((w) => weekLabel(new Date(w))).join(", ") : "Ninguna marcada"}
+              </div>
+              <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
+                Programar visita manual — en rojo las semanas en las que el cliente estará, en dorado sus semanas preferidas:
+              </div>
+              <ScheduleVisitForm
+                propertyId={p.id}
+                professionals={professionals ?? []}
+                occupiedWeeks={ocupacion}
+                preferredWeeks={preferidas}
+              />
+            </div>
           </div>
         );
       })}
