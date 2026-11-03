@@ -27,6 +27,7 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: true });
 
   const pendingSetup = properties?.filter((p) => !p.payment_setup_completed) ?? [];
+  const propertyIds = (properties ?? []).map((p) => p.id);
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
   const { count: npsThisMonth } = await supabase
@@ -35,9 +36,48 @@ export default async function DashboardPage() {
     .gte("created_at", monthStart);
   const showNps = (npsThisMonth ?? 0) === 0 && (properties?.length ?? 0) > 0;
 
+  const { data: liveVisits } = propertyIds.length
+    ? await supabase
+        .from("visits")
+        .select("id, property_id, scheduled_date, arrived_at, departed_at")
+        .in("property_id", propertyIds)
+        .order("scheduled_date", { ascending: true })
+    : { data: [] };
+
+  const propertyAddress = (id: string) => properties?.find((p) => p.id === id)?.address ?? "";
+  const liveVisit = (liveVisits ?? []).find((v) => v.arrived_at && !v.departed_at);
+  const recentlyLeft = (liveVisits ?? []).find(
+    (v) => v.departed_at && Date.now() - new Date(v.departed_at).getTime() < 3 * 60 * 60 * 1000
+  );
+  const nextVisitByProperty = new Map<string, string>();
+  for (const v of liveVisits ?? []) {
+    if (v.scheduled_date && !nextVisitByProperty.has(v.property_id) && new Date(v.scheduled_date) >= new Date(new Date().toDateString())) {
+      nextVisitByProperty.set(v.property_id, v.scheduled_date);
+    }
+  }
+
   return (
     <div>
       <h1 style={{ fontSize: 36, marginBottom: 24 }}>Sus viviendas</h1>
+
+      {liveVisit && (
+        <div className="alert-banner live">
+          <span style={{ fontSize: 20 }}>🏠</span>
+          <span>
+            El profesional está ahora en <strong>{propertyAddress(liveVisit.property_id)}</strong> (llegó a las{" "}
+            {new Date(liveVisit.arrived_at!).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}).
+          </span>
+        </div>
+      )}
+      {!liveVisit && recentlyLeft && (
+        <div className="alert-banner live">
+          <span style={{ fontSize: 20 }}>✅</span>
+          <span>
+            El profesional terminó y dejó <strong>{propertyAddress(recentlyLeft.property_id)}</strong> a las{" "}
+            {new Date(recentlyLeft.departed_at!).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}.
+          </span>
+        </div>
+      )}
 
       {showNps && <NpsPrompt propertyId={properties![0].id} />}
 
@@ -59,17 +99,21 @@ export default async function DashboardPage() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {properties?.map((p) => (
-          <Link key={p.id} href={`/dashboard/${p.id}`} className="visit-row">
-            <div>
-              <strong>{p.address}</strong>
-              <div className="muted" style={{ fontSize: 14 }}>
-                Plan {PLAN_LABEL[p.plan] ?? p.plan}
+        {properties?.map((p) => {
+          const next = nextVisitByProperty.get(p.id);
+          return (
+            <Link key={p.id} href={`/dashboard/${p.id}`} className="visit-row" style={{ alignItems: "flex-start" }}>
+              <div>
+                <strong>{p.address}</strong>
+                <div className="muted" style={{ fontSize: 14 }}>
+                  Plan {PLAN_LABEL[p.plan] ?? p.plan}
+                  {next && ` — próxima visita: ${new Date(next).toLocaleDateString("es-ES")}`}
+                </div>
               </div>
-            </div>
-            <span className="muted">Ver visitas →</span>
-          </Link>
-        ))}
+              <span className="muted">→</span>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ import GenerateInvoiceForm from "./generate-invoice-form";
 import AddPropertyForm from "./add-property-form";
 import StatusToggle from "../../status-toggle";
 import TicketPauseButton from "./ticket-pause-button";
+import VisitArrivalButtons from "./visit-arrival-buttons";
 import IncidentsPanel from "./incidents-panel";
 import { nextWeeks, weekLabel, toISODate } from "@/lib/calendar";
 
@@ -66,7 +67,11 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
     { data: planRequests },
     { data: messages },
   ] = await Promise.all([
-    supabase.from("visits").select("id, property_id, status, scheduled_date").in("property_id", propertyIds.length ? propertyIds : ["-"]),
+    supabase
+      .from("visits")
+      .select("id, property_id, status, scheduled_date, service_number, professional_id, arrived_at, departed_at, profiles:professional_id(full_name, codigo_profesional)")
+      .in("property_id", propertyIds.length ? propertyIds : ["-"])
+      .order("scheduled_date", { ascending: false }),
     supabase.from("quotes").select("id, property_id, status, amount_total").in("property_id", propertyIds.length ? propertyIds : ["-"]),
     supabase
       .from("quote_requests")
@@ -313,6 +318,20 @@ export default async function ClienteFichaPage({ params }: { params: { id: strin
                   <TicketPauseButton propertyId={p.id} initialPaused={!!p.ticket_generation_paused} />
                 )}
               </div>
+
+              {propVisits.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+                  {propVisits.slice(0, 4).map((v: any) => (
+                    <div key={v.id} className="visit-row" style={{ fontSize: 13 }}>
+                      <span>
+                        {v.service_number ? `${v.service_number} — ` : ""}
+                        {v.scheduled_date ?? "sin fecha"} — {v.profiles?.full_name ?? "sin profesional"}
+                      </span>
+                      <VisitArrivalButtons visitId={v.id} arrivedAt={v.arrived_at} departedAt={v.departed_at} />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Liquidaciones de esta vivienda</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>

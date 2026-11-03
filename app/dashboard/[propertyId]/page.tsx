@@ -36,9 +36,16 @@ export default async function PropertyVisitsPage({
 
   const { data: visits } = await supabase
     .from("visits")
-    .select("id, scheduled_date, completed_date, status, service_number")
+    .select("id, scheduled_date, completed_date, status, service_number, arrived_at, departed_at")
     .eq("property_id", params.propertyId)
     .order("scheduled_date", { ascending: false });
+
+  // Aviso en vivo: profesional dentro de la vivienda ahora, o que se ha ido
+  // en las últimas 3 horas (para no mostrar un aviso de hace días).
+  const liveVisit = (visits ?? []).find((v) => v.arrived_at && !v.departed_at);
+  const recentlyLeft = (visits ?? []).find(
+    (v) => v.departed_at && Date.now() - new Date(v.departed_at).getTime() < 3 * 60 * 60 * 1000
+  );
 
   const now = new Date();
   const weekStart = startOfWeek(now);
@@ -88,6 +95,23 @@ export default async function PropertyVisitsPage({
         <Link href="/dashboard">← Sus viviendas</Link>
       </p>
       <h1 style={{ fontSize: 32, marginBottom: 24 }}>{property.address}</h1>
+
+      {liveVisit && (
+        <div className="alert-banner live">
+          <span style={{ fontSize: 20 }}>🏠</span>
+          <span>
+            El profesional ha llegado a su vivienda a las {new Date(liveVisit.arrived_at!).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}.
+          </span>
+        </div>
+      )}
+      {!liveVisit && recentlyLeft && (
+        <div className="alert-banner live">
+          <span style={{ fontSize: 20 }}>✅</span>
+          <span>
+            El profesional ha terminado y ha dejado su vivienda a las {new Date(recentlyLeft.departed_at!).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}.
+          </span>
+        </div>
+      )}
 
       {(pendingIncidents ?? []).map((inc) => (
         <IncidentConsent key={inc.id} incidentId={inc.id} description={inc.description} price={inc.repair_price != null ? Number(inc.repair_price) : null} />
