@@ -19,7 +19,10 @@ export default async function PagosPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 32, marginBottom: 24 }}>Cobros</h1>
+      <h1 style={{ fontSize: 32, marginBottom: 8 }}>Cobros</h1>
+      <p className="muted" style={{ marginBottom: 24 }}>
+        Aquí aparece cada cobro realizado en su cuenta: cuota del plan, depósitos de presupuestos aceptados y reparaciones adicionales.
+      </p>
 
       {!payments?.length && <p className="muted">Todavía no hay ningún cobro registrado en su cuenta.</p>}
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { toISODate } from "@/lib/calendar";
 import PropertyCalendar from "./property-calendar";
@@ -13,7 +14,7 @@ export default async function CalendarioPage() {
 
   return (
     <div style={{ maxWidth: 720 }}>
-      <h1 style={{ fontSize: 30, marginBottom: 8 }}>Calendario</h1>
+      <h1 style={{ fontSize: 30, marginBottom: 8 }}>Visitas</h1>
       <p className="muted" style={{ marginBottom: 24 }}>
         Marque las semanas en las que estará en la vivienda y en qué semana prefiere que pasemos a hacer la visita.
         Necesitamos al menos una semana de antelación para organizarnos.
@@ -22,7 +23,12 @@ export default async function CalendarioPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         {(properties ?? []).map((p) => (
           <div key={p.id} className="card">
-            <strong>{p.address}</strong>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <strong>{p.address}</strong>
+              <Link href={`/dashboard/${p.id}`} className="muted" style={{ fontSize: 13 }}>
+                Ver historial de visitas →
+              </Link>
+            </div>
             <PropertyCalendar
               propertyId={p.id}
               entries={(entries ?? []).filter((e) => e.property_id === p.id)}
