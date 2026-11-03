@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./sign-out-button";
+import ClientBottomNav from "./client-bottom-nav";
 
 const CLIENT_NAV = [
   { href: "/dashboard", label: "Mis viviendas" },
@@ -54,9 +55,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
   }
 
+  const isClient = profile?.role !== "manager" && profile?.role !== "profesional";
+
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, flexWrap: "wrap", gap: 12 }}>
+    <div className={isClient ? "client-shell" : ""}>
+      <div
+        className={isClient ? "desktop-nav" : ""}
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, flexWrap: "wrap", gap: 12 }}
+      >
         <nav style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
           {NAV.map((item) => (
             <Link key={item.href} href={item.href} className="muted" style={{ fontSize: 14, textDecoration: "none" }}>
@@ -71,7 +77,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <SignOutButton />
         </div>
       </div>
+      {isClient && (
+        <div className="mobile-only" style={{ justifyContent: "flex-end", marginBottom: 16 }}>
+          <SignOutButton />
+        </div>
+      )}
       {children}
+      {isClient && <ClientBottomNav />}
     </div>
   );
 }
