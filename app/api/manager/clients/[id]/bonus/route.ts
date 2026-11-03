@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 async function requireManager(supabase: ReturnType<typeof createClient>) {
   const {
@@ -21,7 +22,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const { bonusNote, bonusAmount } = await req.json().catch(() => ({}));
 
-  const { error } = await supabase
+  // "profiles" solo tiene política RLS de SELECT — el UPDATE se hace con el
+  // cliente de servicio, igual que el resto de escrituras a esta tabla.
+  const service = createServiceClient();
+  const { error } = await service
     .from("profiles")
     .update({
       bonus_note: bonusNote || null,

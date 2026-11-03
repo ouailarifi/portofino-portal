@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const ALLOWED = ["activo", "pausado", "inactivo"];
 
@@ -24,7 +25,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const { status } = await req.json().catch(() => ({}));
   if (!ALLOWED.includes(status)) return NextResponse.json({ error: "Estado no válido" }, { status: 400 });
 
-  const { error } = await supabase.from("profiles").update({ status }).eq("id", params.id).eq("role", "profesional");
+  // "profiles" solo tiene política RLS de SELECT — el UPDATE se hace con el
+  // cliente de servicio, igual que el resto de escrituras a esta tabla.
+  const service = createServiceClient();
+  const { error } = await service.from("profiles").update({ status }).eq("id", params.id).eq("role", "profesional");
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   return NextResponse.json({ ok: true });
