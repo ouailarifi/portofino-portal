@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./sign-out-button";
 import ClientBottomNav from "./client-bottom-nav";
+import BackButton from "./back-button";
+import ContactFab from "./contact-fab";
 
 const CLIENT_NAV = [
   { href: "/dashboard", label: "Mis viviendas" },
@@ -69,13 +71,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (pendingAlta) {
     return (
       <div className="client-shell">
-        <div className="mobile-only" style={{ justifyContent: "flex-end", marginBottom: 16 }}>
+        <div className="mobile-only" style={{ justifyContent: "space-between", marginBottom: 16 }}>
+          <BackButton />
           <SignOutButton />
         </div>
         <div className="desktop-nav" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 32 }}>
           <SignOutButton />
         </div>
         {children}
+        <ContactFab />
       </div>
     );
   }
@@ -101,11 +105,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </div>
       {isClient && (
-        <div className="mobile-only" style={{ justifyContent: "flex-end", marginBottom: 16 }}>
+        <div className="mobile-only" style={{ justifyContent: "space-between", marginBottom: 16 }}>
+          <BackButton />
           <SignOutButton />
         </div>
       )}
       {children}
+      {isClient && <ContactFab />}
       {isClient && <ClientBottomNav />}
     </div>
   );
