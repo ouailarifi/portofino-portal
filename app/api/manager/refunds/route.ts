@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { stripe } from "@/lib/stripe";
 
 export async function POST(req: Request) {
@@ -36,7 +37,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `No se pudo reembolsar: ${err.message ?? "error de Stripe"}` }, { status: 400 });
   }
 
-  await supabase.from("payments").insert({
+  // "payments" no tiene ninguna política de INSERT/UPDATE para nadie, ni
+  // siquiera el manager — hace falta el cliente de servicio.
+  const service = createServiceClient();
+
+  await service.from("payments").insert({
     client_id: payment.client_id,
     property_id: payment.property_id,
     related_payment_id: payment.id,
@@ -48,7 +53,7 @@ export async function POST(req: Request) {
   });
 
   if (refundAmount >= Number(payment.amount)) {
-    await supabase.from("payments").update({ status: "reembolsado" }).eq("id", payment.id);
+    await service.from("payments").update({ status: "reembolsado" }).eq("id", payment.id);
   }
 
   return NextResponse.json({ ok: true });

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { stripe } from "@/lib/stripe";
 import { getOrCreateStripeCustomer, getDefaultPaymentMethod } from "@/lib/stripe-customer";
 import { generateReceiptForPayment } from "@/lib/invoicing";
@@ -52,7 +53,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `No se pudo cobrar: ${err.message ?? "pago rechazado"}` }, { status: 400 });
   }
 
-  const { data: paymentRow, error } = await supabase
+  // "payments" no tiene ninguna política de INSERT/UPDATE para nadie, ni
+  // siquiera el manager — hace falta el cliente de servicio.
+  const service = createServiceClient();
+  const { data: paymentRow, error } = await service
     .from("payments")
     .insert({
       client_id: property.client_id,

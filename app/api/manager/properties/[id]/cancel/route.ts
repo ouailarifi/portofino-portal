@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { stripe } from "@/lib/stripe";
 import { computeCancellation } from "@/lib/cancellation";
 import { generateReceiptForPayment } from "@/lib/invoicing";
@@ -96,7 +97,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   if (paymentIntentId) {
-    const { data: paymentRow } = await supabase
+    // "payments" no tiene ninguna política de INSERT/UPDATE para nadie, ni
+    // siquiera el manager — hace falta el cliente de servicio.
+    const service = createServiceClient();
+    const { data: paymentRow } = await service
       .from("payments")
       .insert({
         client_id: property.client_id,

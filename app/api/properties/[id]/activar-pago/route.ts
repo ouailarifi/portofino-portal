@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { stripe } from "@/lib/stripe";
 import { getOrCreateStripeCustomer, getDefaultPaymentMethod } from "@/lib/stripe-customer";
 import { generateReceiptForPayment } from "@/lib/invoicing";
@@ -135,7 +136,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     subscriptionId = subscription.id;
   }
 
-  await supabase
+  // "properties" solo permite UPDATE a is_manager() (el cliente no puede
+  // editar su propia fila), y "payments" no tiene ninguna política de
+  // INSERT/UPDATE para nadie — ambas escrituras tienen que ir con el cliente
+  // de servicio o se pierden en silencio (el cobro en Stripe ya se hizo, pero
+  // payment_setup_completed nunca pasaba a true y el middleware volvía a
+  // pedir el alta de pago en cada login).
+  const service = createServiceClient();
+
+  const { error: updateError } = await service
     .from("properties")
     .update({
       payment_setup_completed: true,
@@ -143,8 +152,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       stripe_subscription_id: subscriptionId,
     })
     .eq("id", property.id);
+  if (updateError) {
+    return NextResponse.json({ error: `El cobro se realizó pero no se pudo activar el alta: ${updateError.message}` }, { status: 500 });
+  }
 
-  const { data: paymentRow } = await supabase
+  const { data: paymentRow } = await service
     .from("payments")
     .insert({
       client_id: user.id,

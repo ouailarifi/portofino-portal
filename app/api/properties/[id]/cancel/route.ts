@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { stripe } from "@/lib/stripe";
 import { computeCancellation } from "@/lib/cancellation";
 import { generateReceiptForPayment } from "@/lib/invoicing";
@@ -134,7 +135,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     }
   }
 
-  const { error } = await supabase
+  // "properties" solo permite UPDATE a is_manager() (el cliente no puede
+  // editar su propia fila) y "payments" no tiene ninguna política de
+  // INSERT/UPDATE para nadie — ambas escrituras van con el cliente de
+  // servicio, igual que en /api/properties/[id]/activar-pago.
+  const service = createServiceClient();
+
+  const { error } = await service
     .from("properties")
     .update({
       subscription_status: "baja_solicitada",
@@ -147,7 +154,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   if (paymentIntentId) {
-    const { data: paymentRow } = await supabase
+    const { data: paymentRow } = await service
       .from("payments")
       .insert({
         client_id: user.id,
