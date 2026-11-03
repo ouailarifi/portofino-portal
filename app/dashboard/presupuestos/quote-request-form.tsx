@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const GREMIOS = [
   { value: "carpinteria_madera", label: "Carpintería de madera" },
@@ -10,7 +11,8 @@ const GREMIOS = [
   { value: "reforma_general", label: "Reforma general" },
 ];
 
-export default function QuoteRequestForm({ properties }: { properties: { id: string; address: string }[] }) {
+export default function QuoteRequestForm({ properties, onSent }: { properties: { id: string; address: string }[]; onSent?: () => void }) {
+  const router = useRouter();
   const [propertyId, setPropertyId] = useState(properties[0]?.id ?? "");
   const [gremios, setGremios] = useState<string[]>([]);
   const [description, setDescription] = useState("");
@@ -44,6 +46,8 @@ export default function QuoteRequestForm({ properties }: { properties: { id: str
     setDone(true);
     setDescription("");
     setGremios([]);
+    router.refresh();
+    onSent?.();
   }
 
   if (done) {

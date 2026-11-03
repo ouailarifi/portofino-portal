@@ -46,7 +46,6 @@ const TABS = [
 
 const MORE_LINKS = [
   { href: "/dashboard/plan", label: "Mi plan" },
-  { href: "/dashboard/solicitar-presupuesto", label: "Solicitar presupuesto" },
   { href: "/dashboard/documentacion", label: "Documentación" },
   { href: "/dashboard/mensajes", label: "Mensajes" },
   { href: "/dashboard/configuracion", label: "Configuración" },
