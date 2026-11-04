@@ -16,8 +16,6 @@ const CLIENT_NAV = [
   { href: "/dashboard/configuracion", label: "Configuración" },
 ];
 
-const PROFESIONAL_NAV = [{ href: "/dashboard", label: "Mis visitas" }];
-
 const MANAGER_NAV = [
   { href: "/dashboard/manager", label: "Inicio" },
   { href: "/dashboard/manager/profesionales", label: "Profesionales" },
@@ -38,7 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: profile } = user
     ? await supabase.from("profiles").select("role, status").eq("id", user.id).single()
     : { data: null };
-  const NAV = profile?.role === "manager" ? MANAGER_NAV : profile?.role === "profesional" ? PROFESIONAL_NAV : CLIENT_NAV;
+  const NAV = profile?.role === "manager" ? MANAGER_NAV : CLIENT_NAV;
 
   if (profile && profile.role !== "manager" && profile.status !== "activo") {
     return (
@@ -52,6 +50,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
             Su cuenta está {profile.status === "pausado" ? "temporalmente pausada" : "dada de baja"}. Póngase en contacto con Portofino si cree que es un error.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // Profesional: sin menú superior; solo la flecha de volver. La navegación
+  // son los botones grandes de su pantalla de inicio.
+  if (profile?.role === "profesional") {
+    return (
+      <div className="pro-shell">
+        <div style={{ marginBottom: 20 }}>
+          <BackButton />
+        </div>
+        {children}
       </div>
     );
   }

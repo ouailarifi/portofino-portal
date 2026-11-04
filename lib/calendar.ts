@@ -37,6 +37,12 @@ export function weekLabel(weekStart: Date) {
   return `${fmt(weekStart)} — ${fmt(end)}`;
 }
 
+// Fecha local (AAAA-MM-DD). No usar toISOString(): convierte a UTC y, en España,
+// un lunes a las 00:00 locales pasaba a ser el domingo anterior (las semanas del
+// calendario se guardaban con un día de menos).
 export function toISODate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }

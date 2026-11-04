@@ -89,7 +89,7 @@ export default function IncidentsPanel({ propertyId, incidents }: { propertyId: 
             </div>
             {inc.type === "reparacion" && (
               <span className="muted">
-                {inc.covered_by_plan ? "Cubierta por el plan — se repara sin coste." : `No cubierta — ${inc.repair_price != null ? money(inc.repair_price) : "sin importe"} — ${CONSENT_LABEL[inc.client_consent_status]}`}
+                {inc.covered_by_plan === null ? "Avisada por el profesional — pendiente de valorar." : inc.covered_by_plan ? "Cubierta por el plan — se repara sin coste." : `No cubierta — ${inc.repair_price != null ? money(inc.repair_price) : "sin importe"} — ${CONSENT_LABEL[inc.client_consent_status]}`}
               </span>
             )}
             {inc.type === "acceso" && <span className="muted">{ACCESS_REASON_LABEL[inc.access_reason ?? ""] ?? inc.access_reason}</span>}

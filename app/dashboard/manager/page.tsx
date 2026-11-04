@@ -2,8 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ResolvePlanRequestButtons from "./clientes/[id]/resolve-plan-request-buttons";
+import ReviewRescheduleButton from "./review-reschedule-button";
+import { FLAG_TEXT, type RescheduleFlag } from "@/lib/reschedule-rules";
 
 const PLAN_LABEL: Record<string, string> = { essential: "Essential", comfort: "Comfort", premium: "Premium" };
+const fechaCorta = (d: string | null) => (d ? new Date(d + "T00:00:00").toLocaleDateString("es-ES") : "sin fecha");
 
 const money = (n: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
 
@@ -50,6 +53,7 @@ export default async function ManagerInicioPage() {
     { data: npsRows },
     { count: incidenciasAbiertas },
     { data: planRequests },
+    { data: reschedules },
   ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "profesional").eq("status", "activo"),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "cliente").eq("status", "activo"),
@@ -64,6 +68,13 @@ export default async function ManagerInicioPage() {
       .from("plan_upgrade_requests")
       .select("id, current_plan, requested_plan, created_at, client_id, property_id, profiles:client_id(full_name), properties:property_id(address)")
       .eq("status", "pendiente")
+      .order("created_at", { ascending: true }),
+    // Cambios de cita del profesional que saltaron alguna alerta y siguen sin revisar.
+    supabase
+      .from("visit_reschedules")
+      .select("id, old_date, new_date, flags, reason, created_at, property_id, profiles:professional_id(full_name, codigo_profesional), properties:property_id(address, client_id)")
+      .is("reviewed_at", null)
+      .not("flags", "eq", "{}")
       .order("created_at", { ascending: true }),
   ]);
 
@@ -108,6 +119,39 @@ export default async function ManagerInicioPage() {
     <div>
       <h1 style={{ fontSize: 32, marginBottom: 8 }}>Inicio</h1>
       <p className="muted" style={{ marginBottom: 28 }}>Visión general del negocio</p>
+
+      {!!reschedules?.length && (
+        <div className="card" style={{ marginBottom: 24, borderColor: "#c0392b" }}>
+          <strong>Citas cambiadas fuera de lo previsto ({reschedules.length})</strong>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+            {reschedules.map((r: any) => (
+              <div key={r.id} className="visit-row" style={{ alignItems: "flex-start", gap: 12 }}>
+                <div style={{ fontSize: 14, lineHeight: 1.5 }}>
+                  <strong>{r.profiles?.full_name ?? "Profesional"}</strong>
+                  {r.profiles?.codigo_profesional ? ` (${r.profiles.codigo_profesional})` : ""}
+                  {" movió la visita de "}
+                  {r.properties?.client_id ? (
+                    <Link href={`/dashboard/manager/clientes/${r.properties.client_id}`}>{r.properties?.address}</Link>
+                  ) : (
+                    r.properties?.address
+                  )}
+                  {" del "}
+                  <strong>{fechaCorta(r.old_date)}</strong> al <strong>{fechaCorta(r.new_date)}</strong>.
+                  <ul style={{ margin: "6px 0 0 18px" }}>
+                    {(r.flags as RescheduleFlag[]).map((f) => (
+                      <li key={f} className="muted">{FLAG_TEXT[f] ?? f}</li>
+                    ))}
+                  </ul>
+                  <div style={{ marginTop: 6 }}>
+                    <span className="muted">Motivo indicado:</span> {r.reason ?? <em>sin motivo — pídaselo al profesional</em>}
+                  </div>
+                </div>
+                <ReviewRescheduleButton id={r.id} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!!planRequests?.length && (
         <div className="card" style={{ marginBottom: 24, borderColor: "var(--gold)" }}>

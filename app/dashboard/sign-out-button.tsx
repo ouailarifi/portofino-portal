@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SignOutButton() {
+export default function SignOutButton({ big = false }: { big?: boolean }) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -11,6 +11,14 @@ export default function SignOutButton() {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  }
+
+  if (big) {
+    return (
+      <button onClick={handleSignOut} className="pro-btn quiet">
+        Cerrar sesión
+      </button>
+    );
   }
 
   return (

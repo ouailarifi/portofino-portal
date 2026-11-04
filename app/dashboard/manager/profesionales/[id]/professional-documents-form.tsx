@@ -11,6 +11,7 @@ const TYPES = [
   { value: "contrato_colaboracion", label: "Contrato de colaboración firmado" },
   { value: "certificado_contratistas", label: "Certificado de contratistas y subcontratistas" },
   { value: "certificado_bancario", label: "Certificado de cuenta bancaria" },
+  { value: "seguridad_social", label: "Seguridad Social" },
   { value: "foto", label: "Foto" },
   { value: "otro", label: "Otro" },
 ];

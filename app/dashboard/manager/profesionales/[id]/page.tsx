@@ -80,6 +80,7 @@ export default async function ProfesionalFichaPage({ params }: { params: { id: s
     contrato_colaboracion: "Contrato de colaboración firmado",
     certificado_contratistas: "Certificado de contratistas y subcontratistas",
     certificado_bancario: "Certificado de cuenta bancaria",
+    seguridad_social: "Seguridad Social",
     foto: "Foto",
     otro: "Otro",
   };

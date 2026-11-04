@@ -9,7 +9,7 @@ export default function BackButton() {
   // En la pantalla de Inicio no hay "atrás" dentro de la app: dejamos el
   // espacio reservado (mismo tamaño) para que el botón de cerrar sesión
   // no cambie de sitio al navegar entre pantallas.
-  if (pathname === "/dashboard") return <span style={{ width: 36, height: 36, display: "inline-block" }} />;
+  if (pathname === "/dashboard" || pathname === "/dashboard/profesional") return <span style={{ width: 36, height: 36, display: "inline-block" }} />;
 
   return (
     <button onClick={() => router.back()} className="back-arrow" aria-label="Volver">

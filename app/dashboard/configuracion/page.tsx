@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import PaymentMethods from "./payment-methods";
 import CancelProperty from "./cancel-property";
+import PreferencesForm from "./preferences-form";
 
 const STATUS_LABEL: Record<string, string> = {
   activa: "Activa",
@@ -10,15 +11,26 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default async function ConfiguracionPage() {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data: properties } = await supabase
-    .from("properties")
-    .select("id, address, subscription_status")
-    .order("created_at", { ascending: true });
+  const [{ data: properties }, { data: me }] = await Promise.all([
+    supabase.from("properties").select("id, address, subscription_status").order("created_at", { ascending: true }),
+    user ? supabase.from("profiles").select("visit_preference, call_preference").eq("id", user.id).single() : Promise.resolve({ data: null }),
+  ]);
 
   return (
     <div>
       <h1 style={{ fontSize: 32, marginBottom: 24 }}>Configuración</h1>
+
+      <section style={{ marginBottom: 40 }}>
+        <h2 style={{ fontSize: 20, marginBottom: 12 }}>Sus preferencias</h2>
+        <p className="muted" style={{ fontSize: 14, marginBottom: 16 }}>
+          El profesional que le visite verá esto antes de contactar con usted.
+        </p>
+        <PreferencesForm visitPreference={me?.visit_preference ?? ""} callPreference={me?.call_preference ?? ""} />
+      </section>
 
       <section style={{ marginBottom: 40 }}>
         <h2 style={{ fontSize: 20, marginBottom: 12 }}>Métodos de pago</h2>
