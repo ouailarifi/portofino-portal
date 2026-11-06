@@ -18,12 +18,13 @@ export default async function ChecklistPage({ params }: { params: { visitId: str
 
   const withUrls = await Promise.all(
     items.map(async (it) => {
-      let photoUrl: string | null = null;
-      if (it.photo_path) {
-        const { data } = await service.storage.from("visit-media").createSignedUrl(it.photo_path, 3600);
-        photoUrl = data?.signedUrl ?? null;
-      }
-      return { key: it.key, label: it.label, done: it.done, photoUrl };
+      const photos = await Promise.all(
+        it.photos.map(async (path) => {
+          const { data } = await service.storage.from("visit-media").createSignedUrl(path, 3600);
+          return { path, url: data?.signedUrl ?? "" };
+        })
+      );
+      return { key: it.key, label: it.label, done: it.done, photos };
     })
   );
 
@@ -31,7 +32,7 @@ export default async function ChecklistPage({ params }: { params: { visitId: str
     <div>
       <h1 className="pro-title">Checklist</h1>
       <p className="muted" style={{ fontSize: 16, marginBottom: 20 }}>
-        Marque cada punto al revisarlo y haga una foto de lo que ha comprobado.
+        Marque cada punto al revisarlo y haga las fotos que necesite. Al terminar, pulse «Guardar».
       </p>
       <ChecklistForm visitId={visit.id} initial={withUrls} readOnly={visit.status !== "programada"} />
     </div>

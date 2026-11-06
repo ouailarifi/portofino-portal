@@ -21,7 +21,9 @@ const NOT_A_TASK: RegExp[] = [
   /^coordinación ilimitada/i,
 ];
 
-export type ChecklistItem = { key: string; label: string; done: boolean; photo_path: string | null };
+// "photos": rutas en Storage (bucket visit-media), varias por punto. "photo_path" es el formato
+// antiguo (una sola foto) y se conserva con la primera foto para no romper nada.
+export type ChecklistItem = { key: string; label: string; done: boolean; photo_path: string | null; photos: string[] };
 
 type PlanRow = { slug: string; items: string[] | null };
 
@@ -49,10 +51,11 @@ export function itemKey(label: string) {
 
 // Combina las tareas actuales del plan con lo ya guardado en visits.checklist.
 export function mergeChecklist(labels: string[], saved: unknown): ChecklistItem[] {
-  const savedItems: ChecklistItem[] = Array.isArray(saved) ? (saved as ChecklistItem[]) : [];
+  const savedItems: Partial<ChecklistItem>[] = Array.isArray(saved) ? (saved as Partial<ChecklistItem>[]) : [];
   return labels.map((label) => {
     const key = itemKey(label);
     const prev = savedItems.find((s) => s.key === key);
-    return { key, label, done: prev?.done ?? false, photo_path: prev?.photo_path ?? null };
+    const photos = Array.isArray(prev?.photos) ? prev!.photos! : prev?.photo_path ? [prev.photo_path] : [];
+    return { key, label, done: prev?.done ?? false, photo_path: photos[0] ?? null, photos };
   });
 }
